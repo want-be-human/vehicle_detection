@@ -1,0 +1,16 @@
+Flask==3.1.0
+Flask-CORS==5.0.0
+opencv-python==4.10.0.84
+numpy==2.2.1
+torch==2.5.1
+torchvision==0.20.1
+ultralytics==8.3.59
+SQLAlchemy==2.0.37
+PyMySQL==1.1.1
+redis==5.3.0b4
+requests==2.32.3
+loguru==0.7.3
+Pillow==11.1.0
+Flask-SQLAlchemy==3.1.1
+Flask-JWT-Extended==4.7.1
+Flask-Migrate==4.1.0
