@@ -1,56 +1,22 @@
-import cv2
-from datetime import datetime, timedelta
-import threading
+"""
+车辆检测服务
+
+"""
+
 from app.utils.yolo_integration import detect_vehicles
-import os
+from app.models.detection import DetectionRecord
+from app import db
 
-class VideoProcessor:
-    def __init__(self, camera_urls, save_dir='processed_videos'):
-        self.camera_urls = camera_urls
-        self.save_dir = save_dir
-        os.makedirs(save_dir, exist_ok=True)
+abnormal_vehicle_types = ['oil_tanker', 'heavy_truck']
 
-    def process_stream(self, camera_url, camera_id):
-        cap = cv2.VideoCapture(camera_url)
-        if not cap.isOpened():
-            print(f"Failed to open camera {camera_id}")
-            return
+def process_detection(image_path):
+    vehicles = detect_vehicles(image_path)
+    for vehicle in vehicles:
+        is_abnormal = vehicle['type'] in abnormal_vehicle_types
+        record = DetectionRecord(vehicle_type=vehicle['type'], timestamp=vehicle['time'], image_path=image_path, is_abnormal=is_abnormal)
+        db.session.add(record)
+    db.session.commit()
+    return vehicles
 
-        fourcc = cv2.VideoWriter_fourcc(*'XVID')
-        save_path = os.path.join(self.save_dir, f"{camera_id}_{datetime.now().strftime('%Y%m%d%H')}.avi")
-        out = cv2.VideoWriter(save_path, fourcc, 20.0, (int(cap.get(3)), int(cap.get(4))))
 
-        next_save_time = datetime.now() + timedelta(hours=1)
 
-        while True:
-            ret, frame = cap.read()
-            if not ret:
-                break
-
-            # Run YOLO detection
-            detections = detect_vehicles(frame)
-            for vehicle in detections:
-                cv2.rectangle(frame, (vehicle['x1'], vehicle['y1']), (vehicle['x2'], vehicle['y2']), (0, 255, 0), 2)
-                cv2.putText(frame, vehicle['type'], (vehicle['x1'], vehicle['y1'] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-
-            out.write(frame)
-
-            # Check if it's time to save the file and start a new one
-            if datetime.now() >= next_save_time:
-                out.release()
-                save_path = os.path.join(self.save_dir, f"{camera_id}_{datetime.now().strftime('%Y%m%d%H')}.avi")
-                out = cv2.VideoWriter(save_path, fourcc, 20.0, (int(cap.get(3)), int(cap.get(4))))
-                next_save_time += timedelta(hours=1)
-
-        cap.release()
-        out.release()
-
-    def start(self):
-        threads = []
-        for idx, camera_url in enumerate(self.camera_urls):
-            t = threading.Thread(target=self.process_stream, args=(camera_url, idx))
-            t.start()
-            threads.append(t)
-
-        for t in threads:
-            t.join()

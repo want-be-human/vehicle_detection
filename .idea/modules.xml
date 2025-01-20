@@ -2,7 +2,6 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/../../data/.idea/data.iml" filepath="$PROJECT_DIR$/../../data/.idea/data.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/vehicle_detection.iml" filepath="$PROJECT_DIR$/.idea/vehicle_detection.iml" />
     </modules>
   </component>
