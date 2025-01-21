@@ -1,15 +1,25 @@
 """
 数据查询相关接口
+
+- 查询历史监控接口
+
 """
+from flask import Blueprint, request, jsonify
+from app.services.history_service import HistoryService
 
-from flask import Blueprint, request, jsonify, send_file
-from app.models.detection import DetectionRecord, Video
+# 创建Blueprint实例
+history_blueprint = Blueprint('history', __name__)
 
-bp = Blueprint('data', __name__)
-
-@bp.route('/history_video', methods=['GET'])
-def get_history_video():
-    timestamp = request.args.get('timestamp')  # 传入查询的时间戳
-    video = Video.query.filter_by(timestamp=timestamp).first()
-    return jsonify({'video_path': video.video_path}), 200
+@history_blueprint.route('/query', methods=['POST'])
+def query_history():
+    """
+    查询历史监控接口
+    请求体包括：年、月、日、时、摄像头ID
+    响应包括：对应视频的URL或路径
+    """
+    data = request.json
+    video_url = HistoryService.query_video(data)
+    if video_url:
+        return jsonify({"message": "Query successful", "video_url": video_url}), 200
+    return jsonify({"message": "No video found for the specified time and camera"}), 404
 

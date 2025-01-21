@@ -1,8 +1,11 @@
 """
-config.py                 # 配置文件
+配置摄像头，模型路径等信息
 """
 
+import os
+
 class Config:
-    SQLALCHEMY_DATABASE_URI = 'mysql://username:password@localhost/dbname'
+    SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL', 'sqlite:///app.db')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-    SECRET_KEY = 'your_secret_key'
+    MODEL_DIR = os.path.join(os.path.dirname(__file__), 'models')
+    CONFIG_DIR = os.path.join(os.path.dirname(__file__), 'configs')
