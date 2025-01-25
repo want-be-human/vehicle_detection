@@ -1,24 +1,39 @@
-"""
-应用启动时加载摄像头并启动实时检测任务
-"""
-
 from flask import Flask
-from app.config import Config
-from app.models.camera import Camera
-from app.services.detection_service import DetectionService
-from app.utils.logging_utils import log_info
+from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
+from flask_cors import CORS
 
-app = Flask(__name__)
-app.config.from_object(Config)
+# 创建数据库实例
+db = SQLAlchemy()
+migrate = Migrate()
 
-# 初始化数据库
-from app import db
-db.init_app(app)
+def create_app(config_class="config.Config"):
+    """创建并配置 Flask 应用"""
+    app = Flask(__name__)
+    app.config.from_object(config_class)
 
-# 启动实时检测任务
-with app.app_context():
-    detection_service = DetectionService()
-    cameras = Camera.query.filter_by(is_active=True).all()
-    for camera in cameras:
-        log_info(f"Starting detection for camera: {camera.name}")
-        detection_service.start_realtime_detection(camera.id)
+    # 初始化扩展
+    db.init_app(app)
+    migrate.init_app(app, db)
+    CORS(app)  # 如果需要跨域支持
+
+    # 注册蓝图
+    from app.routes.auth import auth_blueprint
+    from app.routes.camera import camera_blueprint
+    from app.routes.detection import detection_blueprint
+    from app.routes.alert import alert_blueprint
+    from app.routes.violation import violation_blueprint
+    from app.routes.history import history_blueprint
+    from app.routes.statistics import statistics_blueprint
+    from app.routes.plugins import plugins_blueprint
+
+    app.register_blueprint(auth_blueprint, url_prefix='/auth')
+    app.register_blueprint(camera_blueprint, url_prefix='/camera')
+    app.register_blueprint(detection_blueprint, url_prefix='/detection')
+    app.register_blueprint(alert_blueprint, url_prefix='/alert')
+    app.register_blueprint(violation_blueprint, url_prefix='/violation')
+    app.register_blueprint(history_blueprint, url_prefix='/history')
+    app.register_blueprint(statistics_blueprint, url_prefix='/statistics')
+    app.register_blueprint(plugins_blueprint, url_prefix='/plugins')
+
+    return app

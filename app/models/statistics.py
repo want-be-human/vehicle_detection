@@ -1,3 +1,12 @@
+"""
+统计信息模型
+记录年月日
+统计信息（JSON格式）
+    -高峰期（高于当天平均值）
+    -当天车辆类型分布
+    
+"""
+
 from app import db
 
 class StatisticsModel(db.Model):
