@@ -24,6 +24,9 @@ def start_detection():
             - model_path: YOLO模型路径
             - tracking_config: 跟踪配置路径
             - output_path: 输出视频路径
+            - retention_days: 视频保存天数
+
+    响应包括：检测结果
     """
     data = request.json
     # 添加retention_days参数
@@ -58,6 +61,12 @@ def get_results(filename):
         return send_file(filename)
     except Exception as e:
         return jsonify({"error": str(e)}), 404
+
+@detection_blueprint.route('/status', methods=['GET'])
+def get_processing_status():
+    """获取所有处理线程的状态"""
+    status = DetectionService.get_processing_status()
+    return jsonify(status), 200
 
 
 

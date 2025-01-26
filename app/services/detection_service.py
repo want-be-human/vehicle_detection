@@ -18,8 +18,13 @@ from app.models.detection import Detection
 from app.utils.yolo_integration import YOLOIntegration
 from app.utils.logging_utils import log_detection
 from app import db
+from queue import Queue
+from app.utils.websocket_utils import emit_violation_alert
 
 class DetectionService:
+    # 存储活跃的处理线程
+    active_threads = {}
+    
     @staticmethod
     def start_detection(data):
         """
@@ -35,6 +40,15 @@ class DetectionService:
                 - retention_days: 视频保存天数(可选)
         """
         try:
+            camera_id = data['camera_id']
+            
+            # 检查是否已有处理线程
+            if camera_id in DetectionService.active_threads:
+                return {
+                    "success": False,
+                    "message": f"Camera {camera_id} is already being processed"
+                }
+            
             # 初始化YOLO和跟踪器
             yolo = YOLOIntegration(
                 model_path=data['model_path'],
@@ -61,6 +75,12 @@ class DetectionService:
                 daemon=True
             )
             
+            # 存储线程信息
+            DetectionService.active_threads[camera_id] = {
+                'thread': process_thread,
+                'status': 'starting'
+            }
+            
             process_thread.start()
             cleanup_thread.start()
             
@@ -72,6 +92,8 @@ class DetectionService:
             }
             
         except Exception as e:
+            if camera_id in DetectionService.active_threads:
+                del DetectionService.active_threads[camera_id]
             raise Exception(f"Detection start failed: {str(e)}")
 
     @staticmethod
@@ -82,6 +104,7 @@ class DetectionService:
         save_dir = data['save_dir']
         
         try:
+            DetectionService.active_threads[camera_id]['status'] = 'running'
             results_generator = yolo.run_tracker_in_thread(camera_id, stream_url)
             
             # 初始化视频写入器
@@ -89,8 +112,13 @@ class DetectionService:
             output_path = DetectionService._get_video_path(save_dir, camera_id, current_hour)
             out = None
             
-            for results in results_generator:
-                if results and len(results):
+            for results, violations in results_generator:
+                if results:
+                    # 发送违规提醒
+                    if violations:
+                        for violation in violations:
+                            emit_violation_alert(violation)
+                    
                     # 检查是否需要创建新的视频文件
                     now = datetime.now()
                     if now.hour != current_hour:
@@ -104,7 +132,7 @@ class DetectionService:
                     
                     # 确保视频写入器已初始化
                     if out is None:
-                        frame = results[0].plot()  # 获取带有检测框的帧
+                        frame = results.plot()  # 获取带有检测框的帧
                         height, width = frame.shape[:2]
                         out = cv2.VideoWriter(
                             output_path, 
@@ -117,13 +145,16 @@ class DetectionService:
                         DetectionService._update_detection_record(camera_id, output_path)
                     
                     # 写入帧
-                    out.write(results[0].plot())
+                    out.write(results.plot())
                     
         except Exception as e:
             print(f"Stream processing error: {str(e)}")
+            DetectionService.active_threads[camera_id]['status'] = 'error'
         finally:
             if out:
                 out.release()
+            if camera_id in DetectionService.active_threads:
+                del DetectionService.active_threads[camera_id]
 
     @staticmethod
     def _cleanup_old_videos(save_dir, camera_id, retention_days):
@@ -206,38 +237,58 @@ class DetectionService:
     @staticmethod
     def analyze_file(data):
         """
-        分析文件或目录
+        分析外部视频/图片文件
         Args:
-            data (dict): 包括文件路径、模型路径、跟踪算法配置路径
+            data (dict): {
+                'source': 文件路径,
+                'model': 模型路径,
+                'tracker_type': 跟踪器类型,
+                'tracking_config': 跟踪配置(可选),
+                'save_dir': 保存目录(可选)
+            }
         Returns:
             dict: 分析结果
         """
         try:
-            source = data['source']  # 文件或目录路径
-            model_path = data['model']
-            tracking_config = data.get('tracking_config')
+            source = data['source']
+            if not os.path.exists(source):
+                raise FileNotFoundError(f"Source file not found: {source}")
+            
+            # 验证文件类型
+            valid_extensions = ('.mp4', '.avi', '.jpg', '.jpeg', '.png')
+            if not source.lower().endswith(valid_extensions):
+                raise ValueError(f"Unsupported file type. Supported: {valid_extensions}")
+            
+            # 创建保存目录
             save_dir = data.get('save_dir', 'outputs')
+            os.makedirs(save_dir, exist_ok=True)
             
             # 初始化YOLO
             yolo = YOLOIntegration(
-                model_path=model_path,
+                model_path=data['model'],
                 tracker_type=data.get('tracker_type', 'bytetrack'),
-                tracking_config=tracking_config
+                tracking_config=data.get('tracking_config')
             )
             
-            # 运行推理
-            results = yolo.process_source(
-                source=source,
-                save_dir=save_dir
-            )
+            # 处理文件
+            results = yolo.process_source(source, save_dir)
             
             return {
                 "success": True,
+                "message": "Analysis completed successfully",
                 "results": results
             }
             
         except Exception as e:
             raise Exception(f"File analysis failed: {str(e)}")
+
+    @staticmethod
+    def get_processing_status():
+        """获取所有处理线程的状态"""
+        return {
+            camera_id: info['status']
+            for camera_id, info in DetectionService.active_threads.items()
+        }
 
 
 

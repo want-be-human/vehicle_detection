@@ -2,6 +2,7 @@ from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_cors import CORS
+from app.utils.websocket_utils import socketio
 
 # 创建数据库实例
 db = SQLAlchemy()
@@ -16,6 +17,7 @@ def create_app(config_class="config.Config"):
     db.init_app(app)
     migrate.init_app(app, db)
     CORS(app)  # 如果需要跨域支持
+    socketio.init_app(app, cors_allowed_origins="*")
 
     # 注册蓝图
     from app.routes.auth import auth_blueprint
