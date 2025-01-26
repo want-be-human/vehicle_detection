@@ -4,7 +4,7 @@
 Detection: 车辆检测记录模型
 - camera_id: 摄像头ID
 - timestamp: 检测时间
-- vehicle_type: 车辆类型
+- vehicle_type: 特殊车辆类型
 - location: 出现位置
 - video_path: 分析后的视频存储路径
 - is_violation: 是否违规
