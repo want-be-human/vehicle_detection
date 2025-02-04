@@ -11,6 +11,7 @@
 
 from flask import Blueprint, request, jsonify, send_file
 from app.services.detection_service import DetectionService
+from app.utils.websocket_utils import VideoStreamConfig
 
 detection_blueprint = Blueprint('detection', __name__)
 
@@ -94,6 +95,38 @@ def configure_special_vehicles():
             "success": False,
             "error": str(e)
         }), 500
+
+@detection_blueprint.route('/stream/config', methods=['POST'])
+def configure_stream():
+    """配置视频流参数"""
+    try:
+        config = request.json
+        
+        # 验证并更新配置
+        if 'max_width' in config:
+            VideoStreamConfig.MAX_WIDTH = max(640, min(1920, int(config['max_width'])))
+        if 'max_height' in config:
+            VideoStreamConfig.MAX_HEIGHT = max(480, min(1080, int(config['max_height'])))
+        if 'jpeg_quality' in config:
+            VideoStreamConfig.JPEG_QUALITY = max(1, min(100, int(config['jpeg_quality'])))
+        if 'target_fps' in config:
+            VideoStreamConfig.TARGET_FPS = max(1, min(30, int(config['target_fps'])))
+            
+        return jsonify({
+            'success': True,
+            'message': 'Stream configuration updated',
+            'config': {
+                'max_width': VideoStreamConfig.MAX_WIDTH,
+                'max_height': VideoStreamConfig.MAX_HEIGHT,
+                'jpeg_quality': VideoStreamConfig.JPEG_QUALITY,
+                'target_fps': VideoStreamConfig.TARGET_FPS
+            }
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 400
 
 
 

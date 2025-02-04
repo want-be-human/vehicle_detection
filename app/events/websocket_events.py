@@ -19,3 +19,32 @@ def handle_join(data):
         # 将客户端加入到对应摄像头的房间
         socketio.join_room(f'camera_{camera_id}', namespace='/violations')
         emit('joined', {'camera_id': camera_id}, namespace='/violations')
+
+@socketio.on('connect', namespace='/video')
+def handle_video_connect():
+    """处理视频流连接"""
+    print('Client connected to video stream')
+
+@socketio.on('disconnect', namespace='/video')
+def handle_video_disconnect():
+    """处理视频流断开连接"""
+    print('Client disconnected from video stream')
+
+@socketio.on('join_stream', namespace='/video')
+def handle_join_stream(data):
+    """处理加入视频流房间"""
+    camera_id = data.get('camera_id')
+    if camera_id:
+        # 将客户端加入到对应摄像头的视频流房间
+        room = f'camera_{camera_id}'
+        socketio.join_room(room, namespace='/video')
+        emit('joined_stream', {'camera_id': camera_id}, namespace='/video')
+
+@socketio.on('leave_stream', namespace='/video')
+def handle_leave_stream(data):
+    """处理离开视频流房间"""
+    camera_id = data.get('camera_id')
+    if camera_id:
+        room = f'camera_{camera_id}'
+        socketio.leave_room(room, namespace='/video')
+        emit('left_stream', {'camera_id': camera_id}, namespace='/video')

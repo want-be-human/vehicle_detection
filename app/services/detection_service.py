@@ -20,7 +20,8 @@ from app.utils.yolo_integration import YOLOIntegration
 from app.utils.logging_utils import log_detection
 from app import db
 from queue import Queue
-from app.utils.websocket_utils import emit_violation_alert, emit_special_vehicle_alert
+from app.utils.websocket_utils import emit_violation_alert, emit_special_vehicle_alert, emit_video_frame
+from app.utils.websocket_utils import VideoStreamConfig
 
 class DetectionService:
     # 存储活跃的处理线程
@@ -116,12 +117,30 @@ class DetectionService:
             output_path = DetectionService._get_video_path(save_dir, camera_id, current_hour)
             out = None
             
+            # 帧率控制
+            frame_interval = 1.0 / VideoStreamConfig.TARGET_FPS
+            last_frame_time = time.time()
+            
             for results, violations in results_generator:
+                current_time = time.time()
+                time_diff = current_time - last_frame_time
+                
+                # 控制帧率
+                if time_diff < frame_interval:
+                    time.sleep(frame_interval - time_diff)
+                    
                 if results and results.boxes is not None:
                     # 检查特殊车辆
                     special_vehicles = DetectionService._check_special_vehicles(
                         results, camera, yolo.special_vehicles)
-                        
+                    
+                    # 获取带检测框的帧
+                    frame = results.plot()
+                    
+                    # 推送到前端
+                    emit_video_frame(camera_id, frame)
+                    last_frame_time = time.time()
+                    
                     # 发送特殊车辆通知
                     if special_vehicles:
                         emit_special_vehicle_alert({
