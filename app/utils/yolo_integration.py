@@ -31,8 +31,11 @@ class YOLOIntegration:
         7: 'truck'
     }
 
-
-
+    # 特殊车辆配置
+    SPECIAL_VEHICLES = {
+        5: {'name': 'bus', 'color': (0, 0, 255)},      # 红色
+        7: {'name': 'truck', 'color': (255, 0, 0)}     # 蓝色
+    }
 
     """
         初始化YOLO模型和跟踪配置
@@ -41,7 +44,7 @@ class YOLOIntegration:
             tracker_type: 跟踪器类型 (botsort/bytetrack/custom)
             tracking_config: 自定义跟踪配置文件路径
     """
-    def __init__(self, model_path, tracker_type='botsort', tracking_config=None):
+    def __init__(self, model_path, tracker_type='botsort', tracking_config=None, special_vehicles=None):
         self.base_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../assets'))
         self.model_dir = os.path.join(self.base_path, 'models')
         
@@ -61,8 +64,8 @@ class YOLOIntegration:
                 raise ValueError(f"Invalid tracker type: {tracker_type}")
             self.tracking_config = self.TRACKER_OPTIONS[tracker_type]
 
-
-
+        # 允许自定义特殊车辆
+        self.special_vehicles = special_vehicles if special_vehicles else self.SPECIAL_VEHICLES
 
     """
         在独立线程中运行YOLO跟踪器
@@ -206,19 +209,22 @@ class YOLOIntegration:
         track_ids = results.boxes.id.int().cpu().tolist()
         cls_ids = results.boxes.cls.cpu().tolist()
         
-        # 绘制检测框和标签
         for box, track_id, cls_id in zip(boxes, track_ids, cls_ids):
-            if int(cls_id) in self.TARGET_CLASSES:
+            cls_id = int(cls_id)
+            if cls_id in self.TARGET_CLASSES:
                 x, y, w, h = map(int, box)
-                cls_name = self.TARGET_CLASSES[int(cls_id)]
+                cls_name = self.TARGET_CLASSES[cls_id]
+                
+                # 使用特殊颜色标记特殊车辆
+                color = self.special_vehicles[cls_id]['color'] if cls_id in self.special_vehicles else (0, 255, 0)
                 
                 # 绘制边界框
-                cv2.rectangle(frame, (x-w//2, y-h//2), (x+w//2, y+h//2), (0, 255, 0), 2)
+                cv2.rectangle(frame, (x-w//2, y-h//2), (x+w//2, y+h//2), color, 2)
                 
                 # 添加标签
                 label = f'{cls_name} #{track_id} ({x},{y})'
                 cv2.putText(frame, label, (x-w//2, y-h//2-10), 
-                           cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0,255,0), 2)
-        
+                           cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
+
         return frame
 

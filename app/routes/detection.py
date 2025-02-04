@@ -68,5 +68,32 @@ def get_processing_status():
     status = DetectionService.get_processing_status()
     return jsonify(status), 200
 
+@detection_blueprint.route('/special-vehicles/config', methods=['POST'])
+def configure_special_vehicles():
+    """配置特殊车辆"""
+    try:
+        config = request.json
+        # 验证配置格式
+        if not isinstance(config, dict):
+            return jsonify({"error": "Invalid configuration format"}), 400
+            
+        for cls_id, settings in config.items():
+            if not isinstance(settings, dict) or 'name' not in settings or 'color' not in settings:
+                return jsonify({"error": f"Invalid configuration for class {cls_id}"}), 400
+        
+        # 保存配置到数据库或缓存中
+        # ... (根据实际需求实现存储逻辑)
+        
+        return jsonify({
+            "success": True,
+            "message": "Special vehicles configuration updated"
+        }), 200
+        
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
 
 

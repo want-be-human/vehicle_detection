@@ -15,11 +15,12 @@ import glob
 import time
 from datetime import datetime, timedelta
 from app.models.detection import Detection
+from app.models.camera import Camera
 from app.utils.yolo_integration import YOLOIntegration
 from app.utils.logging_utils import log_detection
 from app import db
 from queue import Queue
-from app.utils.websocket_utils import emit_violation_alert
+from app.utils.websocket_utils import emit_violation_alert, emit_special_vehicle_alert
 
 class DetectionService:
     # 存储活跃的处理线程
@@ -107,45 +108,61 @@ class DetectionService:
             DetectionService.active_threads[camera_id]['status'] = 'running'
             results_generator = yolo.run_tracker_in_thread(camera_id, stream_url)
             
+            # 获取摄像头信息
+            camera = Camera.query.get(camera_id)
+            
             # 初始化视频写入器
             current_hour = datetime.now().hour
             output_path = DetectionService._get_video_path(save_dir, camera_id, current_hour)
             out = None
             
             for results, violations in results_generator:
-                if results:
-                    # 发送违规提醒
-                    if violations:
-                        for violation in violations:
-                            emit_violation_alert(violation)
-                    
-                    # 检查是否需要创建新的视频文件
-                    now = datetime.now()
-                    if now.hour != current_hour:
-                        if out:
-                            out.release()
-                        current_hour = now.hour
-                        output_path = DetectionService._get_video_path(save_dir, camera_id, current_hour)
+                if results and results.boxes is not None:
+                    # 检查特殊车辆
+                    special_vehicles = DetectionService._check_special_vehicles(
+                        results, camera, yolo.special_vehicles)
                         
-                        # 更新数据库
-                        DetectionService._update_detection_record(camera_id, output_path)
+                    # 发送特殊车辆通知
+                    if special_vehicles:
+                        emit_special_vehicle_alert({
+                            'camera_name': camera.name,
+                            'vehicles': special_vehicles,
+                            'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                        })
                     
-                    # 确保视频写入器已初始化
-                    if out is None:
-                        frame = results.plot()  # 获取带有检测框的帧
-                        height, width = frame.shape[:2]
-                        out = cv2.VideoWriter(
-                            output_path, 
-                            cv2.VideoWriter_fourcc(*'mp4v'), 
-                            30, 
-                            (width, height)
-                        )
+                    if results:
+                        # 发送违规提醒
+                        if violations:
+                            for violation in violations:
+                                emit_violation_alert(violation)
                         
-                        # 创建初始数据库记录
-                        DetectionService._update_detection_record(camera_id, output_path)
-                    
-                    # 写入帧
-                    out.write(results.plot())
+                        # 检查是否需要创建新的视频文件
+                        now = datetime.now()
+                        if now.hour != current_hour:
+                            if out:
+                                out.release()
+                            current_hour = now.hour
+                            output_path = DetectionService._get_video_path(save_dir, camera_id, current_hour)
+                            
+                            # 更新数据库
+                            DetectionService._update_detection_record(camera_id, output_path)
+                        
+                        # 确保视频写入器已初始化
+                        if out is None:
+                            frame = results.plot()  # 获取带有检测框的帧
+                            height, width = frame.shape[:2]
+                            out = cv2.VideoWriter(
+                                output_path, 
+                                cv2.VideoWriter_fourcc(*'mp4v'), 
+                                30, 
+                                (width, height)
+                            )
+                            
+                            # 创建初始数据库记录
+                            DetectionService._update_detection_record(camera_id, output_path)
+                        
+                        # 写入帧
+                        out.write(results.plot())
                     
         except Exception as e:
             print(f"Stream processing error: {str(e)}")
@@ -155,6 +172,52 @@ class DetectionService:
                 out.release()
             if camera_id in DetectionService.active_threads:
                 del DetectionService.active_threads[camera_id]
+
+    @staticmethod
+    def _check_special_vehicles(results, camera, special_vehicles):
+        """检查特殊车辆"""
+        special_detections = []
+        
+        if results.boxes is not None:
+            boxes = results.boxes.xywh.cpu()
+            cls_ids = results.boxes.cls.cpu().tolist()
+            track_ids = results.boxes.id.int().cpu().tolist()
+            
+            for box, cls_id, track_id in zip(boxes, cls_ids, track_ids):
+                cls_id = int(cls_id)
+                if cls_id in special_vehicles:
+                    x, y = int(box[0].item()), int(box[1].item())
+                    detection = {
+                        'vehicle_type': special_vehicles[cls_id]['name'],
+                        'track_id': track_id,
+                        'location': {'x': x, 'y': y}
+                    }
+                    special_detections.append(detection)
+                    
+                    # 记录到数据库
+                    DetectionService._save_special_vehicle_detection(
+                        camera.id,
+                        detection
+                    )
+                    
+        return special_detections
+
+    @staticmethod
+    def _save_special_vehicle_detection(camera_id, detection):
+        """保存特殊车辆检测记录"""
+        try:
+            record = Detection(
+                camera_id=camera_id,
+                timestamp=datetime.now(),
+                vehicle_type=detection['vehicle_type'],
+                location=str(detection['location']),
+                is_violation=False  # 特殊车辆不一定违规
+            )
+            db.session.add(record)
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            print(f"Failed to save special vehicle detection: {str(e)}")
 
     @staticmethod
     def _cleanup_old_videos(save_dir, camera_id, retention_days):
