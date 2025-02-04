@@ -8,13 +8,34 @@
 """
 
 from app import db
+from sqlalchemy import Index
 
 class StatisticsModel(db.Model):
     __tablename__ = 'statistics'
 
     id = db.Column(db.Integer, primary_key=True)
     date = db.Column(db.Date, nullable=False, unique=True)  # 日期
-    statistics = db.Column(db.Text, nullable=False)  # 统计信息（JSON格式）
+    peak_hours = db.Column(db.JSON)  # 高峰时段 [{"hour": 8, "count": 100}, ...]
+    vehicle_distribution = db.Column(db.JSON)  # 车辆类型分布 {"car": 100, "bus": 50, ...}
+    hourly_flow = db.Column(db.JSON)  # 分时段流量 [{"hour": 0, "count": 30}, ...]
+    total_count = db.Column(db.Integer, default=0)  # 总数，用于快速查询
+    chart_data = db.Column(db.JSON)  # 图表数据 {"peak_chart": {...}, "distribution_chart": {...}}
+
+    # 添加索引优化查询性能
+    __table_args__ = (
+        Index('idx_date_total', date, total_count),
+        Index('idx_date', date),
+    )
+
+    def to_dict(self):
+        return {
+            'date': self.date.strftime('%Y-%m-%d'),
+            'peak_hours': self.peak_hours,
+            'vehicle_distribution': self.vehicle_distribution,
+            'hourly_flow': self.hourly_flow,
+            'total_count': self.total_count,
+            'chart_data': self.chart_data
+        }
 
     def __repr__(self):
         return f"<Statistics(date={self.date})>"

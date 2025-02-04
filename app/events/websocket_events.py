@@ -1,5 +1,6 @@
 from flask_socketio import emit
 from app.utils.websocket_utils import socketio
+from app.services.statistics_service import StatisticsService
 
 @socketio.on('connect', namespace='/violations')
 def handle_connect():
@@ -48,3 +49,17 @@ def handle_leave_stream(data):
         room = f'camera_{camera_id}'
         socketio.leave_room(room, namespace='/video')
         emit('left_stream', {'camera_id': camera_id}, namespace='/video')
+
+@socketio.on('connect', namespace='/statistics')
+def handle_stats_connect():
+    """处理统计数据连接"""
+    print('Client connected to statistics namespace')
+    # 发送最新统计数据
+    today_stats = StatisticsService.calculate_daily_statistics()
+    if today_stats:
+        emit('statistics_update', today_stats)
+
+@socketio.on('disconnect', namespace='/statistics')
+def handle_stats_disconnect():
+    """处理统计数据断开连接"""
+    print('Client disconnected from statistics namespace')

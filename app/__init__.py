@@ -3,6 +3,8 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_cors import CORS
 from app.utils.websocket_utils import socketio
+from app.config.scheduler_config import scheduler
+from app.services.statistics_service import StatisticsService
 
 # 创建数据库实例
 db = SQLAlchemy()
@@ -18,6 +20,10 @@ def create_app(config_class="config.Config"):
     migrate.init_app(app, db)
     CORS(app)  # 如果需要跨域支持
     socketio.init_app(app, cors_allowed_origins="*")
+
+    # 初始化定时任务
+    scheduler.start()
+    StatisticsService.schedule_daily_statistics()
 
     # 注册蓝图
     from app.routes.auth import auth_blueprint
