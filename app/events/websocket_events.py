@@ -2,15 +2,18 @@ from flask_socketio import emit
 from app.utils.websocket_utils import socketio
 from app.services.statistics_service import StatisticsService
 
+def _log_connection_status(status, namespace):
+    print(f"Client {status} {namespace} namespace")
+
 @socketio.on('connect', namespace='/violations')
 def handle_connect():
     """处理客户端连接"""
-    print('Client connected to violations namespace')
+    _log_connection_status("connected to", "/violations")
 
 @socketio.on('disconnect', namespace='/violations')
 def handle_disconnect():
     """处理客户端断开连接"""
-    print('Client disconnected from violations namespace')
+    _log_connection_status("disconnected from", "/violations")
 
 @socketio.on('join', namespace='/violations')
 def handle_join(data):
@@ -24,12 +27,12 @@ def handle_join(data):
 @socketio.on('connect', namespace='/video')
 def handle_video_connect():
     """处理视频流连接"""
-    print('Client connected to video stream')
+    _log_connection_status("connected to", "/video")
 
 @socketio.on('disconnect', namespace='/video')
 def handle_video_disconnect():
     """处理视频流断开连接"""
-    print('Client disconnected from video stream')
+    _log_connection_status("disconnected from", "/video")
 
 @socketio.on('join_stream', namespace='/video')
 def handle_join_stream(data):
@@ -53,7 +56,7 @@ def handle_leave_stream(data):
 @socketio.on('connect', namespace='/statistics')
 def handle_stats_connect():
     """处理统计数据连接"""
-    print('Client connected to statistics namespace')
+    _log_connection_status("connected to", "/statistics")
     # 发送最新统计数据
     today_stats = StatisticsService.calculate_daily_statistics()
     if today_stats:
@@ -62,4 +65,4 @@ def handle_stats_connect():
 @socketio.on('disconnect', namespace='/statistics')
 def handle_stats_disconnect():
     """处理统计数据断开连接"""
-    print('Client disconnected from statistics namespace')
+    _log_connection_status("disconnected from", "/statistics")

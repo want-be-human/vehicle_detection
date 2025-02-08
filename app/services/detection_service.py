@@ -1,10 +1,83 @@
 """
-多摄像头实时车辆检测
+车辆检测服务 (DetectionService)
 
-1. 启动检测逻辑
-2. 获取所有检测记录
-3. 分析外部文件逻辑
+主要功能：
+1. 视频流处理：
+   - 启动车辆检测
+   - 实时处理视频流
+   - 检测特殊车辆
+   - 检测违规行为
+   - 保存处理后的视频
 
+2. 数据管理：
+   - 检测记录存储
+   - 视频文件管理
+   - 定期清理过期数据
+
+3. 文件分析：
+   - 支持分析外部视频/图片
+   - 生成分析报告
+
+与前端交互：
+1. WebSocket实时通信：
+   - 通过[`emit_video_frame`](app/utils/websocket_utils.py)推送实时视频帧
+   - 通过[`emit_violation_alert`](app/utils/websocket_utils.py)推送违规提醒
+   - 通过[`emit_special_vehicle_alert`](app/utils/websocket_utils.py)推送特殊车辆提醒
+
+2. REST API接口：
+   - POST /detection/detect: 启动检测
+   - GET /detection/detections: 获取检测记录
+   - POST /detection/analyze: 分析外部文件
+   - GET /detection/status: 获取处理状态
+
+数据流向：
+1. 视频流处理：
+   Camera -> YOLOIntegration -> 违规检测 -> WebSocket -> Frontend
+          -> 视频存储 -> 数据库记录
+
+2. 特殊车辆检测：
+   Detection -> Database -> WebSocket -> Frontend Alert
+
+3. 违规行为检测：
+   ViolationDetector -> Database -> WebSocket -> Frontend Alert
+
+工作流程：
+1. 启动检测：
+   - 验证参数
+   - 初始化YOLO模型
+   - 创建处理线程
+   - 启动清理线程
+   
+2. 视频处理：
+   - 控制帧率
+   - 检测目标
+   - 识别特殊车辆
+   - 检查违规行为
+   - 推送实时结果
+   - 保存视频文件
+   
+3. 数据清理：
+   - 定期检查过期文件
+   - 删除过期视频
+   - 清理数据库记录
+
+异常处理：
+- 视频流中断处理
+- 数据库操作异常
+- 文件系统异常
+- 模型加载异常
+
+关联服务：
+- [`Camera`](app/models/camera.py): 摄像头管理
+- [`YOLOIntegration`](app/utils/yolo_integration.py): 目标检测
+- [`ViolationService`](app/services/violation_service.py): 违规检测
+- [`StatisticsService`](app/services/statistics_service.py): 统计服务
+
+性能优化：
+- 使用线程池处理多路视频流
+- 控制视频帧率降低资源占用
+- 定期清理过期数据
+- 异常自动恢复机制
 """
 
 # 车辆检测服务

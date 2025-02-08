@@ -1,3 +1,79 @@
+"""
+统计服务 (StatisticsService)
+
+主要功能：
+1. 统计数据生成与管理:
+   - 计算每日车辆统计数据
+   - 生成统计图表(饼图、折线图、柱状图)
+   - 存储统计结果
+   - 支持按年/月/周查询统计
+
+2. 定时任务:
+   - 每天0点自动生成前一天统计
+   - 每小时更新当天实时统计
+
+3. 数据可视化:
+   - 车辆类型分布饼图
+   - 分时段流量折线图
+   - 高峰时段柱状图
+
+与前端交互：
+1. WebSocket实时推送:
+   - 通过socketio推送统计数据更新
+   - 命名空间: /statistics
+   - 事件: statistics_update
+
+2. REST API接口:
+   - GET /statistics/daily: 获取每日统计
+   - POST /statistics/query: 查询历史统计
+   - GET /statistics/charts/<date>: 获取图表数据
+
+数据流向：
+1. 实时统计:
+   Detection记录 -> 统计计算 -> WebSocket -> Frontend展示
+                -> 数据库存储
+
+2. 历史查询:
+   Frontend请求 -> REST API -> 数据库查询 -> Frontend展示
+
+工作流程：
+1. 数据统计:
+   - 聚合Detection记录
+   - 计算各类统计指标
+   - 生成图表数据
+   - 存储统计结果
+
+2. 定时更新:
+   - 每天0点统计前一天数据
+   - 每小时更新当天统计
+
+3. 数据查询:
+   - 支持多维度查询
+   - 支持图表数据导出
+
+图表类型：
+1. vehicle_distribution:
+   - 类型：饼图
+   - 数据：各类车辆数量分布
+
+2. hourly_flow:
+   - 类型：折线图
+   - 数据：24小时车流量变化
+
+3. peak_hours:
+   - 类型：柱状图
+   - 数据：高峰时段流量
+
+关联模型：
+- [`Detection`](app/models/detection.py): 检测记录
+- [`StatisticsModel`](app/models/statistics.py): 统计记录
+
+性能优化：
+- 使用缓存减少数据库查询
+- 异步处理统计任务
+- 优化图表数据结构
+"""
+
 from datetime import datetime, timedelta
 from app.models.detection import Detection  
 from app.models.statistics import StatisticsModel

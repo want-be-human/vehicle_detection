@@ -8,7 +8,7 @@ sys.path.append(project_root)
 
 from app import db, create_app
 from app.models.camera import Camera
-from app.models.detection import Detection, DetectionModel
+from app.models.detection import Detection
 from app.models.statistics import StatisticsModel
 
 def init_db():
@@ -56,7 +56,7 @@ def init_db():
                 video_path='/videos/detection_1.mp4',
                 is_violation=False
             ),
-            DetectionModel(
+            Detection(
                 camera_id=1,
                 timestamp=datetime.now(),
                 video_path='/videos/record_1.mp4'

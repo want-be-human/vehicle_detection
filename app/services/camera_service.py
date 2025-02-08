@@ -1,9 +1,80 @@
 """
-摄像头业务逻辑
-包含以下功能：
-1. 添加摄像头(包括验证数据、测试连接、创建记录、启动视频流处理)
-2. 删除摄像头（包括停止视频处理线程、删除视频文件、删除数据库记录）
+摄像头管理服务 (CameraService)
 
+主要功能：
+1. 摄像头管理：
+   - 添加新摄像头
+   - 删除现有摄像头 
+   - 更新摄像头配置
+   - 管理禁停区域
+
+2. 视频流处理：
+   - 验证摄像头连接
+   - 启动视频流处理
+   - 获取处理后的视频流
+
+与前端交互：
+1. 通过 camera_blueprint 路由接口:
+   - POST /camera/cameras: 添加新摄像头
+   - DELETE /camera/cameras/<id>: 删除摄像头
+   - PUT /camera/cameras/<id>/restricted-areas: 更新禁停区域
+
+2. WebSocket 实时通信:
+   - 通过 socketio 推送视频流
+   - 实时更新摄像头状态
+   - 发送违规检测结果
+
+数据流向：
+Frontend -> REST API -> CameraService -> Database
+                   -> WebSocket -> Frontend (实时数据)
+
+工作流程：
+1. 添加摄像头:
+   Frontend POST /camera/cameras 
+   -> CameraService.add_camera()
+   -> 验证数据
+   -> 测试连接
+   -> 创建数据库记录
+   -> 启动视频处理
+   -> 返回结果给前端
+
+2. 视频处理:
+   CameraService.start_video_processing()
+   -> DetectionService.start_detection()
+   -> YOLOIntegration 处理
+   -> WebSocket 推送结果
+   -> 前端展示
+
+3. 禁停区域管理:
+   Frontend PUT /camera/restricted-areas
+   -> CameraService.update_restricted_areas()
+   -> 更新数据库
+   -> 实时生效于检测逻辑
+
+异常处理：
+- 数据验证异常
+- 连接测试异常
+- 视频处理异常
+- 数据库操作异常
+
+关联服务：
+- DetectionService: 视频检测服务
+- ViolationService: 违规检测服务
+- StatisticsService: 统计服务
+
+数据模型：
+- Camera: 摄像头信息模型
+- Detection: 检测记录模型
+
+配置管理：
+- 默认模型：yolov8n.pt
+- 默认跟踪器：botsort.yaml
+- 视频存储路径：streams/<camera_id>/
+
+性能考虑：
+- 使用数据库事务确保数据一致性
+- 异步处理视频流
+- 文件系统操作异常处理
 """
 
 # 摄像头管理服务
