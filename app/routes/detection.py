@@ -1,12 +1,117 @@
 """
-车辆检测相关接口
+车辆检测接口模块 (detection.py)
 
-包括：
-1. 启动检测接口
-2. 查询检测记录接口
-3. 分析外部文件接口
+主要功能：
+1. 视频检测管理：
+   - 启动车辆检测流程
+   - 获取检测记录
+   - 分析外部视频文件
+   - 获取检测状态
+   - 配置特殊车辆检测
+   - 配置视频流参数
 
+REST API接口：
+1. 启动检测：
+   POST /detect
+   请求体格式：
+   {
+     "camera_id": 1,
+     "stream_url": "rtsp://192.168.1.100:554/stream1",
+     "model_path": "yolov8n.pt",
+     "tracking_config": "botsort.yaml",
+     "output_path": "streams/1/live.mp4",
+     "retention_days": 30
+   }
+   响应：200 OK
+   {
+     "success": true,
+     "status": "started",
+     "camera_id": 1
+   }
 
+2. 获取检测记录：
+   GET /detections
+   响应：200 OK
+   [{
+     "id": 1,
+     "camera_id": 1,
+     "timestamp": "2024-03-15 14:30:00",
+     "vehicle_type": "car",
+     "location": "Gate 1"
+   }]
+
+3. 分析文件：
+   POST /analyze
+   请求体格式：
+   {
+     "source": "/path/to/video.mp4",
+     "model": "yolov8n.pt",
+     "tracker_type": "botsort"
+   }
+
+4. 配置特殊车辆：
+   POST /special-vehicles/config
+   {
+     "5": {"name": "bus", "color": [0,0,255]},
+     "7": {"name": "truck", "color": [255,0,0]}
+   }
+
+5. 配置视频流：
+   POST /stream/config
+   {
+     "max_width": 1280,
+     "max_height": 720,
+     "jpeg_quality": 80,
+     "target_fps": 25
+   }
+
+工作流程：
+1. 启动检测：
+   Frontend POST /detect 
+   -> DetectionService.start_detection()
+   -> 初始化YOLO模型
+   -> 创建处理线程
+   -> WebSocket推送实时结果
+   -> 保存视频文件
+
+2. 实时检测：
+   视频流 -> YOLO检测 
+   -> 目标跟踪 
+   -> 违规检测
+   -> WebSocket推送
+   -> 前端展示
+
+3. 视频存储：
+   检测结果 -> 按小时存储 
+   -> 自动清理过期文件
+   -> 更新数据库记录
+
+与其他模块关联：
+- [`DetectionService`](app/services/detection_service.py): 检测服务
+- [`YOLOIntegration`](app/utils/yolo_integration.py): YOLO集成
+- [`VideoStreamConfig`](app/utils/websocket_utils.py): 视频流配置
+- [`WebSocket`](app/utils/websocket_utils.py): 实时推送
+
+数据流向：
+1. 视频流处理：
+   Camera -> YOLO -> 目标检测 
+   -> WebSocket -> Frontend显示
+   -> 视频存储 -> 数据库记录
+
+2. 特殊车辆检测：
+   检测 -> 数据库 -> WebSocket 
+   -> Frontend提醒
+
+异常处理：
+- 400: 请求参数错误
+- 404: 资源不存在
+- 500: 服务器内部错误
+
+性能优化：
+- 控制视频分辨率
+- JPEG压缩优化
+- 帧率限制
+- 异步处理
 """
 
 from flask import Blueprint, request, jsonify, send_file

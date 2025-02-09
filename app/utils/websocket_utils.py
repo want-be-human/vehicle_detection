@@ -21,7 +21,7 @@ WebSocket通信工具模块 (websocket_utils.py)
 与前端交互：
 1. 视频流传输 (/video):
    - 发送: emit_video_frame()
-   - 数据: {
+   - 数据格式: {
        'camera_id': 摄像头ID,
        'frame': base64编码的帧数据,
        'timestamp': 时间戳
@@ -30,17 +30,18 @@ WebSocket通信工具模块 (websocket_utils.py)
 
 2. 违规提醒 (/violations):
    - 发送: emit_violation_alert()
-   - 数据: {
+   - 数据格式: {
        'camera_id': 摄像头ID,
-       'violation_type': 违规类型,
-       'location': 位置信息,
-       'timestamp': 时间戳
+       'violation_type': 违规类型(parking/speed),
+       'location': {'x': x坐标, 'y': y坐标},
+       'timestamp': 时间戳,
+       'vehicle_type': 车辆类型
    }
    - 接收: socket.on('violation_alert')
 
 3. 摄像头状态 (/cameras):
    - 发送: emit_camera_status()
-   - 数据: {
+   - 数据格式: {
        'camera_id': 摄像头ID,
        'status': 状态(online/offline/error)
    }
@@ -48,72 +49,55 @@ WebSocket通信工具模块 (websocket_utils.py)
 
 4. 统计信息 (/statistics):
    - 发送: emit_detection_stats()
-   - 数据: {
-       'vehicle_count': 车辆统计,
-       'peak_hours': 高峰期,
+   - 数据格式: {
+       'vehicle_count': {'car': 100, 'bus': 50},
+       'peak_hours': [{'hour': 8, 'count': 120}],
        'timestamp': 时间戳
    }
    - 接收: socket.on('detection_stats')
 
-配置管理：
-VideoStreamConfig:
-  - MAX_WIDTH: 1280 - 限制视频帧最大宽度
-  - MAX_HEIGHT: 720 - 限制视频帧最大高度
-  - JPEG_QUALITY: 80 - JPEG压缩质量(0-100)
-  - TARGET_FPS: 25 - 目标帧率，控制传输频率
-
 数据流向：
 1. 视频流：
-   DetectionService 
+   [`DetectionService`](app/services/detection_service.py)
    -> emit_video_frame() 
    -> 压缩/编码 
    -> WebSocket
    -> Frontend播放
 
 2. 违规提醒：
-   ViolationService 
+   [`ViolationService`](app/services/violation_service.py)
    -> emit_violation_alert() 
    -> WebSocket 
    -> Frontend提示
 
 3. 状态更新：
-   CameraService 
+   [`CameraService`](app/services/camera_service.py)
    -> emit_camera_status() 
    -> WebSocket 
    -> Frontend显示
 
 4. 统计数据：
-   StatisticsService 
+   [`StatisticsService`](app/services/statistics_service.py)
    -> emit_detection_stats() 
    -> WebSocket 
    -> Frontend图表
 
 性能优化：
 1. 图像压缩：
-   - 限制最大分辨率
-   - JPEG压缩
-   - 控制帧率
+   - 限制最大分辨率(1280x720)
+   - JPEG压缩(质量80)
+   - 控制帧率(25fps)
 
 2. 数据分发：
-   - 使用房间机制
-   - 按摄像头ID分组
-   - 避免无效广播
+   - 使用房间机制(按摄像头ID分组)
+   - 避免全局广播
+   - 及时清理断开的连接
 
 异常处理：
-- WebSocket连接异常
-- 数据发送失败
-- 编码解码错误
-
-使用示例：
-1. 发送违规提醒：
-   emit_violation_alert({
-       'camera_id': 1,
-       'violation_type': 'parking',
-       'location': {'x': 100, 'y': 200}
-   })
-
-2. 推送视频帧：
-   emit_video_frame(camera_id=1, frame_data=frame)
+- WebSocket连接异常处理
+- 数据发送失败重试
+- 编码解码错误捕获
+- 资源释放确保
 """
 
 from flask_socketio import SocketIO, emit, join_room, leave_room
@@ -131,7 +115,16 @@ class VideoStreamConfig:
     TARGET_FPS = 25   # 目标帧率
 
 def emit_violation_alert(violation_data):
-    """发送违规提醒到前端"""
+    """
+    发送违规提醒到前端
+    Args:
+        violation_data: dict, 包含:
+            - camera_id: 摄像头ID
+            - violation_type: 违规类型
+            - location: 位置信息
+            - timestamp: 时间戳
+            - vehicle_type: 车辆类型
+    """
     try:
         # 发送到特定摄像头的房间
         camera_id = violation_data.get('camera_id')
@@ -191,3 +184,37 @@ def emit_video_frame(camera_id, frame_data):
         
     except Exception as e:
         print(f"Error sending video frame: {str(e)}")
+
+def emit_error(namespace, error_data):
+    """发送错误事件"""
+    try:
+        socketio.emit('error', error_data, namespace=namespace)
+    except Exception as e:
+        print(f"Error sending error event: {str(e)}")
+
+def emit_streaming_status(camera_id, status):
+    """发送视频流状态更新"""
+    try:
+        event = 'streaming_start' if status == 'started' else 'streaming_stop'
+        socketio.emit(event, {'camera_id': camera_id}, namespace='/cameras')
+    except Exception as e:
+        print(f"Error sending streaming status: {str(e)}")
+
+def emit_joined_status(camera_id, namespace, event_type='joined'):
+    """发送加入/离开状态"""
+    try:
+        socketio.emit(f'{event_type}', {
+            'camera_id': camera_id
+        }, namespace=namespace)
+    except Exception as e:
+        print(f"Error sending {event_type} status: {str(e)}")
+
+def emit_streaming_result(camera_id, status):
+    """发送流媒体结果状态"""
+    try:
+        event = 'streaming_started' if status == 'started' else 'streaming_stopped'
+        socketio.emit(event, {
+            'camera_id': camera_id
+        }, namespace='/cameras')
+    except Exception as e:
+        print(f"Error sending streaming result: {str(e)}")

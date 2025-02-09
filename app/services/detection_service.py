@@ -95,6 +95,7 @@ from app import db
 from queue import Queue
 from app.utils.websocket_utils import emit_violation_alert, emit_special_vehicle_alert, emit_video_frame
 from app.utils.websocket_utils import VideoStreamConfig
+from app.utils.websocket_utils import emit_streaming_result
 
 class DetectionService:
     # 存储活跃的处理线程
@@ -159,6 +160,8 @@ class DetectionService:
             process_thread.start()
             cleanup_thread.start()
             
+            emit_streaming_result(camera_id, 'started')
+            
             return {
                 "success": True,
                 "status": "started",
@@ -167,6 +170,7 @@ class DetectionService:
             }
             
         except Exception as e:
+            emit_streaming_result(camera_id, 'stopped')
             if camera_id in DetectionService.active_threads:
                 del DetectionService.active_threads[camera_id]
             raise Exception(f"Detection start failed: {str(e)}")
@@ -199,7 +203,7 @@ class DetectionService:
                 time_diff = current_time - last_frame_time
                 
                 # 控制帧率
-                if time_diff < frame_interval:
+                if (time_diff < frame_interval):
                     time.sleep(frame_interval - time_diff)
                     
                 if results and results.boxes is not None:
