@@ -28,7 +28,7 @@
 
 - **后端框架**: Flask
 - **数据库**: MySQL
-- **目标检测**: YOLOv8
+- **目标检测**: YOLOv11
 - **实时通信**: Flask-SocketIO
 - **权限认证**: JWT
 - **数据分析**: Pandas, Plotly
@@ -95,12 +95,77 @@ python run.py
 ```markdown
 vehicle-detection-system/
 ├── app/                    # 应用核心代码
-│   ├── models/            # 数据模型
-│   ├── routes/            # API路由
+│   ├── __init__.py          # 应用初始化
+│   ├── config/              # 配置文件
+│   │   ├── __init__.py
+│   │   └── scheduler_config.py    # 定时任务配置
+│   ├── models/              # 数据模型
+│   │   ├── __init__.py
+│   │   ├── camera.py         # 摄像头模型
+│   │   ├── detection.py      # 检测记录模型
+│   │   ├── statistics.py     # 统计数据模型
+│   │   ├── user.py          # 用户模型
+│   │   └── violation.py      # 违规记录模型
+│   ├── routes/             # API路由
+│   │   ├── __init__.py
+│   │   ├── admin.py         # 管理员接口
+│   │   ├── auth.py          # 认证接口
+│   │   ├── camera.py        # 摄像头管理
+│   │   ├── detection.py     # 检测管理
+│   │   ├── history.py       # 历史查询
+│   │   ├── statistics.py    # 统计分析
+│   │   └── violation.py     # 违规管理
 │   ├── services/          # 业务逻辑
+│   │   ├── __init__.py
+│   │   ├── auth_service.py     # 认证服务
+│   │   ├── camera_service.py   # 摄像头服务
+│   │   ├── detection_service.py # 检测服务
+│   │   ├── history_service.py  # 历史查询服务
+│   │   ├── statistics_service.py # 统计服务
+│   │   └── violation_service.py # 违规服务
 │   ├── utils/             # 工具函数
-│   └── plugins/           # 插件系统
-└── docs/                  # 项目文档
+│   │   ├── __init__.py
+│   │   ├── camera_utils.py     # 摄像头工具
+│   │   ├── image_processing.py # 图像处理
+│   │   ├── logging_utils.py    # 日志工具
+│   │   ├── violation_utils.py  # 违规检测工具
+│   │   ├── websocket_utils.py  # WebSocket工具
+│   │   └── yolo_integration.py # YOLO集成
+│   ├── plugins/           # 插件系统
+│   │   ├── __init__.py
+│   │   ├── example_plugin.py   # 示例插件
+│   │   └── plugin_template.py  # 插件模板
+│   ├── events/            # 事件处理
+│   │   └── websocket_events.py # WebSocket事件
+│   └── assets/           # 资源文件
+│       ├── models/       # 模型文件
+│       │   └── yolov8n.pt
+│       └── configs/      # 配置文件
+│           └── custom_config.yaml
+├── docs/                 # 项目文档
+│   ├── api_documentation.md    # API文档
+│   ├── plugin_development_guide.md # 插件开发指南
+│   └── user_manual.md         # 用户手册
+├── logs/                # 日志文件
+│   ├── detection.log    # 检测日志
+│   ├── error.log       # 错误日志
+│   └── debug.log       # 调试日志
+├── scripts/            # 脚本文件
+│   ├── setup_db.py    # 数据库初始化
+│   └── run_server.sh  # 服务器启动脚本
+├── tests/             # 测试文件
+│   ├── __init__.py
+│   ├── test_auth.py   # 认证测试
+│   ├── test_camera.py # 摄像头测试
+│   ├── test_detection.py  # 检测测试
+│   ├── test_history.py   # 历史查询测试
+│   ├── test_plugins.py   # 插件测试
+│   ├── test_statistics.py # 统计测试
+│   └── test_violation.py # 违规测试
+├── .gitignore         # Git忽略文件
+├── README.md          # 项目说明
+├── requirements.txt   # 依赖清单
+└── run.py            # 应用入口
 ```
 
 ## 配置说明
