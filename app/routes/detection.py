@@ -120,6 +120,7 @@ from app.utils.websocket_utils import VideoStreamConfig
 
 detection_blueprint = Blueprint('detection', __name__)
 
+
 @detection_blueprint.route('/detect', methods=['POST'])
 def start_detection():
     """

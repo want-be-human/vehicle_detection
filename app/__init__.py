@@ -71,6 +71,7 @@ def create_app(config_class=Config):
     # schedule_tasks()
 
     # 注册蓝图
+    from app.routes.connect import connect_blueprint
     from app.routes.auth import auth_blueprint
     from app.routes.camera import camera_blueprint
     from app.routes.detection import detection_blueprint
@@ -79,6 +80,7 @@ def create_app(config_class=Config):
     from app.routes.statistics import statistics_blueprint
    #  from app.routes.plugins import plugins_blueprint
 
+    app.register_blueprint(connect_blueprint)
     app.register_blueprint(auth_blueprint, url_prefix='/auth')
     app.register_blueprint(camera_blueprint, url_prefix='/camera')
     app.register_blueprint(detection_blueprint, url_prefix='/detection')
