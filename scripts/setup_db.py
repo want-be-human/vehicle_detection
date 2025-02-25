@@ -10,10 +10,11 @@ from app import db, create_app
 from app.models.camera import Camera
 from app.models.detection import Detection
 from app.models.statistics import StatisticsModel
+from app.config import Config
 
 def init_db():
     """初始化数据库"""
-    app = create_app()
+    app = create_app(Config)
     with app.app_context():
         # 删除所有表并重新创建
         db.drop_all()
@@ -66,8 +67,11 @@ def init_db():
         
         # 添加测试统计数据
         test_statistics = StatisticsModel(
-            date=datetime.now().date(),
-            statistics='{"total_vehicles": 100, "violations": 5}'
+            date=datetime.now().date(),  # 使用 date 字段
+            vehicle_distribution={'car': 100, 'bus': 50},  # 使用正确的字段名
+            hourly_flow=[{"hour": 0, "count": 30}],
+            total_count=150,
+            chart_data={"peak_chart": {}, "distribution_chart": {}}
         )
         db.session.add(test_statistics)
         

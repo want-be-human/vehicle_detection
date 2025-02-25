@@ -139,6 +139,22 @@ def emit_violation_alert(violation_data):
     except Exception as e:
         print(f"Error sending violation alert: {str(e)}")
 
+
+def emit_special_vehicle_alert(alert_data):
+    """
+    发送特殊车辆提醒到前端
+    Args:
+        alert_data: dict, 包含:
+            - camera_name: 摄像头名称
+            - vehicles: 特殊车辆列表
+            - timestamp: 时间戳
+    """
+    try:
+        socketio.emit('special_vehicle_alert', alert_data, 
+                     namespace='/violations')
+    except Exception as e:
+        print(f"Error sending special vehicle alert: {str(e)}")
+
 def emit_camera_status(camera_id, status):
     """发送摄像头状态更新"""
     try:

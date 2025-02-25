@@ -104,7 +104,7 @@ REST API接口：
 """
 from flask import Blueprint, request, jsonify
 from datetime import datetime
-from app.services.statistics import StatisticsService
+from app.services.statistics_service import StatisticsService
 
 statistics_blueprint = Blueprint('statistics', __name__)
 

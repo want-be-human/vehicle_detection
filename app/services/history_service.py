@@ -66,7 +66,7 @@ DetectionRecord:
 4. 考虑添加查询结果缓存机制
 """
 from datetime import datetime
-from app.models.detection import DetectionRecord  # 导入正确的模型类
+from app.models.detection import Detection  # 导入正确的模型类
 
 class HistoryService:
     @staticmethod
@@ -89,11 +89,11 @@ class HistoryService:
         query_datetime = datetime.strptime(query_time, "%Y-%m-%d %H:%M:%S")
         
         # 查询数据库
-        video_record = DetectionRecord.query.filter_by(
+        video_record = Detection.query.filter_by(
             camera_id=camera_id
         ).filter(
-            DetectionRecord.timestamp >= query_datetime,
-            DetectionRecord.timestamp < query_datetime.replace(hour=hour+1)
+            Detection.timestamp >= query_datetime,
+            Detection.timestamp < query_datetime.replace(hour=hour+1)
         ).first()
         
         if video_record:

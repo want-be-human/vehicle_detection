@@ -40,8 +40,10 @@ import os
 
 class Config:
      # 格式: mysql://用户名:密码@主机地址:端口/数据库名
-    SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL', 'mysql://root:Yun211314@localhost:3306/project')
+    SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL', 'mysql+pymysql://root:Yun211314@localhost:3306/project')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ECHO = bool(os.getenv('SQLALCHEMY_ECHO', 'False').lower() == 'true')
-    MODEL_DIR = os.path.join(os.path.dirname(__file__), 'models')
-    CONFIG_DIR = os.path.join(os.path.dirname(__file__), 'configs')
+     # 修正路径：使用项目根目录作为基准
+    BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
+    MODEL_DIR = os.path.join(BASE_DIR, 'app/assets/models') 
+    CONFIG_DIR = os.path.join(BASE_DIR, 'app/assets/configs')
