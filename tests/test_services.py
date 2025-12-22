@@ -76,6 +76,7 @@ class TestDetectionService:
     @patch('app.services.detection_service.YOLOIntegration')
     @patch('app.services.detection_service.threading.Thread')
     def test_start_detection_success(self, mock_thread, mock_yolo, mock_emit, tmp_path):
+        assert DetectionService is not None
         process_thread = Mock()
         cleanup_thread = Mock()
         mock_thread.side_effect = [process_thread, cleanup_thread]
@@ -97,6 +98,7 @@ class TestDetectionService:
         DetectionService.active_threads.clear()
 
     def test_start_detection_duplicate_camera(self, tmp_path):
+        assert DetectionService is not None
         DetectionService.active_threads[1] = {'thread': Mock(), 'status': 'running'}
 
         test_data = {

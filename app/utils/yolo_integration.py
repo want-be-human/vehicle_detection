@@ -156,7 +156,6 @@ class YOLOIntegration:
     def __init__(self, model_path, tracker_type='botsort', tracking_config=None, special_vehicles=None):
         self.base_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../assets'))
         self.model_dir = os.path.join(self.base_path, 'models')
-        # å†³å®šè®¾å¤‡ï¼šä¼˜å…ˆCUDAï¼Œå¦åˆ™å›žé€€CPU
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         
         # 加载模型
