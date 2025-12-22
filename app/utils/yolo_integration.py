@@ -109,7 +109,7 @@ SPECIAL_VEHICLES = {
 import os
 import threading
 import cv2
-from ultralytics import YOLO
+from ultralytics import YOLO  # type: ignore
 from app.services.violation_service import ViolationService
 
 """
@@ -282,12 +282,21 @@ class YOLOIntegration:
             
             # 处理每一帧的结果
             for r in results:
-                if r.boxes is not None:
+                if r.boxes is not None and r.boxes.id is not None:
                     frame_detections = []
-                    for box, track_id, cls_id in zip(
-                            r.boxes.xywh.cpu(), 
-                            r.boxes.id.int().cpu(), 
-                            r.boxes.cls.cpu()):
+                    boxes_xywh = r.boxes.xywh
+                    boxes_id = r.boxes.id
+                    boxes_cls = r.boxes.cls
+                    
+                    # 处理 tensor 或 numpy array
+                    if hasattr(boxes_xywh, 'cpu'):
+                        boxes_xywh = boxes_xywh.cpu()  # type: ignore
+                    if hasattr(boxes_id, 'cpu'):
+                        boxes_id = boxes_id.int().cpu()  # type: ignore
+                    if hasattr(boxes_cls, 'cpu'):
+                        boxes_cls = boxes_cls.cpu()  # type: ignore
+                    
+                    for box, track_id, cls_id in zip(boxes_xywh, boxes_id, boxes_cls):
                         if int(cls_id) in self.TARGET_CLASSES:
                             detection = {
                                 "track_id": int(track_id),

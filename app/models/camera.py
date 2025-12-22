@@ -19,6 +19,7 @@
 """
 
 from app import db
+from typing import Optional, Any
 
 class Camera(db.Model):
     __tablename__ = 'cameras'
@@ -51,7 +52,24 @@ class Camera(db.Model):
     
     # 关联的检测记录反向引用
     detections = db.relationship('Detection', backref='camera', lazy=True)
-    
+
+    def __init__(self, name: str, ip_address: str, port: int, url: str,
+                 resolution: Optional[str] = None, frame_rate: Optional[int] = None,
+                 encoding_format: Optional[str] = None, model: Optional[str] = None,
+                 tracking_config: Optional[str] = None, is_active: bool = True,
+                 status: str = 'offline', restricted_areas: Optional[Any] = None):
+        self.name = name
+        self.ip_address = ip_address
+        self.port = port
+        self.url = url
+        self.resolution = resolution
+        self.frame_rate = frame_rate
+        self.encoding_format = encoding_format
+        self.model = model
+        self.tracking_config = tracking_config
+        self.is_active = is_active
+        self.status = status
+        self.restricted_areas = restricted_areas
 
     def __repr__(self):
         return f"<Camera {self.name} ({self.ip_address}:{self.port})>"

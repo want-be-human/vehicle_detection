@@ -83,8 +83,6 @@ from app import db
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-from sqlalchemy import func
-import json
 
 class StatisticsService:
     @staticmethod
@@ -129,10 +127,10 @@ class StatisticsService:
         
         # 使用正确的模型名称Detection
         detections = Detection.query.filter(
-            Detection.timestamp.between(start_time, end_time)
+            Detection.timestamp.between(start_time, end_time)  # type: ignore
         ).with_entities(
-            Detection.timestamp,
-            Detection.vehicle_type
+            Detection.timestamp,  # type: ignore
+            Detection.vehicle_type  # type: ignore
         ).all()
         
         if not detections:
@@ -149,9 +147,9 @@ class StatisticsService:
         vehicle_distribution = df['vehicle_type'].value_counts().to_dict()
         
         # 计算高峰时段
-        avg_flow = df.groupby('hour').size().mean()
-        peak_hours = df.groupby('hour').size()
-        peak_hours = [{'hour': h, 'count': c} for h, c in peak_hours[peak_hours > avg_flow].items()]
+        hourly_counts = df.groupby('hour').size()
+        avg_flow = float(hourly_counts.mean())
+        peak_hours = [{'hour': int(h), 'count': int(c)} for h, c in hourly_counts.to_dict().items() if c > avg_flow]
         
         stats_data = {
             'date': date,
@@ -165,7 +163,7 @@ class StatisticsService:
         stats_data['chart_data'] = StatisticsService.generate_charts(stats_data)
         
         # 保存/更新统计数据
-        StatisticsService.save_statistics(stats_data)
+        StatisticsService.store_daily_statistics(date, stats_data)
         
         # 推送给前端
         socketio.emit('statistics_update', stats_data, namespace='/statistics')
@@ -197,7 +195,7 @@ class StatisticsService:
     @staticmethod
     def query_statistics_with_cache(query_params):
         """带缓存的统计查询"""
-        cache_key = f"stats_{query_params['type']}_{query_params['range']}"
+        # cache_key = f"stats_{query_params['type']}_{query_params['range']}"
         
         # TODO: 实现缓存逻辑
         results = StatisticsModel.query.filter(
@@ -222,8 +220,8 @@ class StatisticsService:
 
         # 使用正确的模型名称Detection
         records = Detection.query.filter(
-            Detection.timestamp >= start_time,
-            Detection.timestamp < end_time
+            Detection.timestamp >= start_time,  # type: ignore
+            Detection.timestamp < end_time  # type: ignore
         ).all()
 
         # 分类统计
@@ -262,7 +260,11 @@ class StatisticsService:
         """
         stats_entry = StatisticsModel(
             date=date,
-            statistics=json.dumps(stats)
+            peak_hours=stats.get('peak_hours'),
+            vehicle_distribution=stats.get('vehicle_distribution'),
+            hourly_flow=stats.get('hourly_flow'),
+            total_count=stats.get('total_count', 0),
+            chart_data=stats.get('chart_data')
         )
         db.session.add(stats_entry)
         db.session.commit()
@@ -293,9 +295,9 @@ class StatisticsService:
             return None
 
         records = StatisticsModel.query.filter(
-            StatisticsModel.date >= start_time,
-            StatisticsModel.date < end_time
+            StatisticsModel.date >= start_time,  # type: ignore
+            StatisticsModel.date < end_time  # type: ignore
         ).all()
 
-        results = [json.loads(record.statistics) for record in records]
+        results = [record.to_dict() for record in records]
         return results

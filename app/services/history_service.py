@@ -92,8 +92,8 @@ class HistoryService:
         video_record = Detection.query.filter_by(
             camera_id=camera_id
         ).filter(
-            Detection.timestamp >= query_datetime,
-            Detection.timestamp < query_datetime.replace(hour=hour+1)
+            Detection.timestamp >= query_datetime,  # type: ignore
+            Detection.timestamp < query_datetime.replace(hour=hour+1)  # type: ignore
         ).first()
         
         if video_record:

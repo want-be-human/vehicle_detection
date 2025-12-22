@@ -79,12 +79,10 @@ Frontend -> REST API -> CameraService -> Database
 
 # 摄像头管理服务
 import cv2
-import json
 import os
 from datetime import datetime
 from app.models.camera import Camera
 from app.models.detection import Detection
-from app.utils.yolo_integration import YOLOIntegration
 from app import db
 from app.services.detection_service import DetectionService
 

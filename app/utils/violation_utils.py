@@ -66,7 +66,6 @@
 2. 可扩展支持更多违规类型
 3. 可优化空间查询性能
 """
-import numpy as np
 from shapely.geometry import Point, Polygon
 
 class ViolationDetector:

@@ -12,6 +12,8 @@ Detection: 车辆检测记录模型
 """
 
 from app import db
+from datetime import datetime
+from typing import Optional
 
 class Detection(db.Model):
     __tablename__ = 'detections'
@@ -26,6 +28,16 @@ class Detection(db.Model):
     vehicle_type = db.Column(db.String(100))  # 特殊车辆类型
     location = db.Column(db.String(255))  # 出现位置
     is_violation = db.Column(db.Boolean, default=False)  # 是否违规
+
+    def __init__(self, camera_id: int, timestamp: datetime, video_path: Optional[str] = None,
+                 vehicle_type: Optional[str] = None, location: Optional[str] = None,
+                 is_violation: bool = False):
+        self.camera_id = camera_id
+        self.timestamp = timestamp
+        self.video_path = video_path
+        self.vehicle_type = vehicle_type
+        self.location = location
+        self.is_violation = is_violation
 
     def __repr__(self):
         return f"<Detection {self.vehicle_type} at {self.timestamp}>"

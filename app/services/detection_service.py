@@ -90,9 +90,7 @@ from datetime import datetime, timedelta
 from app.models.detection import Detection
 from app.models.camera import Camera
 from app.utils.yolo_integration import YOLOIntegration
-from app.utils.logging_utils import log_detection
 from app import db
-from queue import Queue
 from app.utils.websocket_utils import emit_violation_alert, emit_special_vehicle_alert, emit_video_frame
 from app.utils.websocket_utils import VideoStreamConfig
 from app.utils.websocket_utils import emit_streaming_result
@@ -115,6 +113,7 @@ class DetectionService:
                 - save_dir: 视频保存目录
                 - retention_days: 视频保存天数(可选)
         """
+        camera_id = None
         try:
             camera_id = data['camera_id']
             
@@ -170,9 +169,10 @@ class DetectionService:
             }
             
         except Exception as e:
-            emit_streaming_result(camera_id, 'stopped')
-            if camera_id in DetectionService.active_threads:
-                del DetectionService.active_threads[camera_id]
+            if camera_id is not None:
+                emit_streaming_result(camera_id, 'stopped')
+                if camera_id in DetectionService.active_threads:
+                    del DetectionService.active_threads[camera_id]
             raise Exception(f"Detection start failed: {str(e)}")
 
     @staticmethod
@@ -192,7 +192,7 @@ class DetectionService:
             # 初始化视频写入器
             current_hour = datetime.now().hour
             output_path = DetectionService._get_video_path(save_dir, camera_id, current_hour)
-            out = None
+            out = None  # type: cv2.VideoWriter | None
             
             # 帧率控制
             frame_interval = 1.0 / VideoStreamConfig.TARGET_FPS
@@ -221,7 +221,7 @@ class DetectionService:
                     # 发送特殊车辆通知
                     if special_vehicles:
                         emit_special_vehicle_alert({
-                            'camera_name': camera.name,
+                            'camera_name': camera.name if camera else 'Unknown',  # type: ignore
                             'vehicles': special_vehicles,
                             'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                         })
@@ -249,7 +249,7 @@ class DetectionService:
                             height, width = frame.shape[:2]
                             out = cv2.VideoWriter(
                                 output_path, 
-                                cv2.VideoWriter_fourcc(*'mp4v'), 
+                                cv2.VideoWriter_fourcc(*'mp4v'),  # type: ignore
                                 30, 
                                 (width, height)
                             )
@@ -264,7 +264,7 @@ class DetectionService:
             print(f"Stream processing error: {str(e)}")
             DetectionService.active_threads[camera_id]['status'] = 'error'
         finally:
-            if out:
+            if out:  # type: ignore
                 out.release()
             if camera_id in DetectionService.active_threads:
                 del DetectionService.active_threads[camera_id]

@@ -66,7 +66,6 @@
 from datetime import datetime
 from app.utils.violation_utils import ViolationDetector
 from app.models.camera import Camera
-from app.models.detection import Detection
 from app import db
 from app.models.violation import Violation
 
@@ -141,7 +140,7 @@ class ViolationService:
                 if 'violation_type' in filters:
                     query = query.filter_by(violation_type=filters['violation_type'])
 
-            violations = query.order_by(Violation.timestamp.desc()).all()
+            violations = query.order_by(Violation.timestamp.desc()).all()  # type: ignore
             return [v.to_dict() for v in violations]
             
         except Exception as e:

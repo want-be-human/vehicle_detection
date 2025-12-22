@@ -9,6 +9,8 @@
 
 from app import db
 from sqlalchemy import Index
+from datetime import date as DateType
+from typing import Optional, Any
 
 class StatisticsModel(db.Model):
     __tablename__ = 'statistics'
@@ -26,6 +28,16 @@ class StatisticsModel(db.Model):
         Index('idx_date_total', date, total_count),
         Index('idx_date', date),
     )
+
+    def __init__(self, date: DateType, peak_hours: Optional[Any] = None,
+                 vehicle_distribution: Optional[Any] = None, hourly_flow: Optional[Any] = None,
+                 total_count: int = 0, chart_data: Optional[Any] = None):
+        self.date = date
+        self.peak_hours = peak_hours
+        self.vehicle_distribution = vehicle_distribution
+        self.hourly_flow = hourly_flow
+        self.total_count = total_count
+        self.chart_data = chart_data
 
     def to_dict(self):
         return {

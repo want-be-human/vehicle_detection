@@ -100,7 +100,7 @@ WebSocket通信工具模块 (websocket_utils.py)
 - 资源释放确保
 """
 
-from flask_socketio import SocketIO, emit, join_room, leave_room
+from flask_socketio import SocketIO
 import cv2
 import base64
 import time
@@ -131,7 +131,7 @@ def emit_violation_alert(violation_data):
         if camera_id:
             room = f'camera_{camera_id}'
             socketio.emit('violation_alert', violation_data, 
-                        namespace='/violations', room=room)
+                        namespace='/violations', to=room)
         else:
             # 如果没有指定摄像头，广播给所有客户端
             socketio.emit('violation_alert', violation_data, 
@@ -188,7 +188,7 @@ def emit_video_frame(camera_id, frame_data):
         _, buffer = cv2.imencode('.jpg', frame_data, encode_param)
         
         # 转换为base64字符串
-        frame_base64 = base64.b64encode(buffer).decode('utf-8')
+        frame_base64 = base64.b64encode(buffer.tobytes()).decode('utf-8')
         
         # 发送到对应摄像头的房间
         room = f'camera_{camera_id}'
@@ -196,7 +196,7 @@ def emit_video_frame(camera_id, frame_data):
             'camera_id': camera_id,
             'frame': frame_base64,
             'timestamp': time.time()
-        }, namespace='/video', room=room)
+        }, namespace='/video', to=room)
         
     except Exception as e:
         print(f"Error sending video frame: {str(e)}")
