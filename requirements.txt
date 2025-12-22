@@ -1,26 +1,34 @@
-Flask
-Flask-CORS
-opencv-python
-numpy
-torch==2.1.0
-torchvision==0.16.0
-ultralytics
-SQLAlchemy
-PyMySQL
-redis
-requests
-loguru
-Pillow
-Flask-SQLAlchemy
-Flask-JWT-Extended
-Flask-Migrate
-Flask-SocketIO
-PyJWT
-Werkzeug
-lap
-mysqlclient
-plotly
-pandas
-tenacity
-packaging
-shapely
+# Flask
+# Flask-CORS
+# opencv-python
+# numpy
+# torch==2.1.0
+# torchvision==0.16.0
+# ultralytics
+# SQLAlchemy
+# PyMySQL
+# redis
+# requests
+# loguru
+# Pillow
+# Flask-SQLAlchemy
+# Flask-JWT-Extended
+# Flask-Migrate
+# Flask-SocketIO
+# PyJWT
+# Werkzeug
+# lap
+# mysqlclient
+# plotly
+# pandas
+# tenacity
+# packaging
+# shapely
+# pytest>=7.0.0
+# pytest-cov>=4.0.0
+pytest-asyncio>=0.21.0
+pytest-flask>=1.2.0
+coverage>=7.0.0
+requests-mock>=1.10.0
+Flask-Testing>=0.8.0
+python-socketio>=5.9.0
