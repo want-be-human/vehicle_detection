@@ -1,0 +1,64 @@
+[tool.pytest.ini_options]
+# 测试目录
+testpaths = ["tests"]
+
+# 详细输出 + 显示失败的详细信息
+addopts = [
+    "-v",                          # 详细模式
+    "--tb=short",                  # 简洁的 traceback（可选 long/short/line/native/no）
+    "--strict-markers",            # 严格检查 marker
+    "-ra",                         # 显示所有非通过测试的摘要（failed, error, skipped等）
+    "--cov=app",                   # 覆盖率统计目录
+    "--cov-branch",                # 启用分支覆盖率
+    "--cov-report=term-missing",   # 终端显示未覆盖的行号
+    "--cov-report=html:htmlcov",   # 生成 HTML 报告到 htmlcov 目录
+    "--cov-report=xml:coverage.xml", # 生成 XML 报告（CI/CD 集成用）
+    "--cov-fail-under=0",          # 覆盖率阈值（0 表示不限制，可改为如 80）
+]
+
+# 测试文件匹配模式
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+
+# 自定义 markers
+markers = [
+    "slow: 标记慢速测试",
+    "integration: 集成测试",
+    "unit: 单元测试",
+]
+
+# 过滤警告
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning",
+]
+
+[tool.coverage.run]
+# 覆盖率运行配置
+source = ["app"]
+branch = true
+omit = [
+    "*/tests/*",
+    "*/__pycache__/*",
+    "*/migrations/*",
+    "*/.venv/*",
+    "*/venv/*",
+]
+
+[tool.coverage.report]
+# 覆盖率报告配置
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "if typing.TYPE_CHECKING:",
+]
+show_missing = true
+precision = 2
+
+[tool.coverage.html]
+directory = "htmlcov"

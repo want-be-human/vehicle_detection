@@ -215,6 +215,14 @@ vehicle-detection-system/
 3. 提交更改
 4. 发起 Pull Request
 
+# PowerShell 脚本：一键运行所有测试并生成覆盖率报告
+# 用法: .\scripts\run_tests.ps1 [选项]
+# 选项:
+#   -Quick      快速模式，不生成 HTML 报告
+#   -Verbose    显示更详细的输出
+#   -Failed     只重新运行失败的测试
+#   -Open       测试完成后自动打开 HTML 报告
+
 ## 许可证
 
 MIT License
