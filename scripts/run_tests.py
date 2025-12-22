@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import argparse
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -97,8 +98,12 @@ def main():
     print("========================================")
     print(f"[INFO] 项目目录: {project_root}")
 
+    env = os.environ.copy()
+    # 防止外部设置的 PYTEST_ADDOPTS 把 --open 等传给 pytest 导致报错
+    env.pop("PYTEST_ADDOPTS", None)
+
     start = time.time()
-    result = subprocess.run(pytest_cmd, cwd=project_root)
+    result = subprocess.run(pytest_cmd, cwd=project_root, env=env)
     duration = time.time() - start
 
     print("========================================")
@@ -113,13 +118,16 @@ def main():
         print("[TIP] 可使用 --failed 只运行上次失败的测试")
 
     # 自动打开 HTML 覆盖率报告（仅在生成了 HTML 且文件存在时）
-    if (not args.quick) and args.open:
-        html = project_root / "htmlcov" / "index.html"
-        if html.exists():
-            print("[INFO] 正在打开 HTML 覆盖率报告...")
-            webbrowser.open(html.as_uri())
+    if not args.quick:
+        if args.open:
+            html = project_root / "htmlcov" / "index.html"
+            if html.exists():
+                print("[INFO] 正在打开 HTML 覆盖率报告...")
+                webbrowser.open(html.as_uri())
+            else:
+                print("[WARN] 未找到 HTML 报告文件:", html)
         else:
-            print("[WARN] 未找到 HTML 报告文件:", html)
+            print("[INFO] 如需自动打开 HTML 报告，请添加 --open 参数")
 
     if not args.quick:
         write_txt_summary(project_root)

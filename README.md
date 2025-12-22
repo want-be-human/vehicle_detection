@@ -66,6 +66,13 @@ python scripts/setup_db.py
 python run.py
 ```
 
+### 5. 运行测试
+
+```bash
+python scripts/run_tests.py --open//自动打开报告
+```
+运行后的测试html在htmlcov文件夹中，语句/分支覆盖率统计在coverage_summary.txt中
+
 ## API接口
 
 详细的API文档请参考 api_documentation.md
@@ -182,7 +189,7 @@ vehicle-detection-system/
 2. **检测模型配置**
    ```python
    MODEL_CONFIG:
-     model_path = 'yolov8n.pt'
+     model_path = 'yolov11m.pt'
      tracker_type = 'botsort'
    ```
 
@@ -208,34 +215,3 @@ vehicle-detection-system/
    - 调整视频流参数
    - 检查网络带宽
 
-## 贡献指南
-
-1. Fork 项目
-2. 创建新分支
-3. 提交更改
-4. 发起 Pull Request
-
-# PowerShell 脚本：一键运行所有测试并生成覆盖率报告
-# 用法: .\scripts\run_tests.ps1 [选项]
-# 选项:
-#   -Quick      快速模式，不生成 HTML 报告
-#   -Verbose    显示更详细的输出
-#   -Failed     只重新运行失败的测试
-#   -Open       测试完成后自动打开 HTML 报告
-
-## 许可证
-
-MIT License
-
-## 联系方式
-
-- 作者：[want-be-human]
-- 邮箱：[798370740@qq.com]
-
-## 致谢
-
-感谢以下开源项目：
-- Flask
-- YOLOv8
-- OpenCV
-- 其他依赖库
