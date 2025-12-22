@@ -109,6 +109,7 @@ SPECIAL_VEHICLES = {
 import os
 import threading
 import cv2
+import torch
 from ultralytics import YOLO  # type: ignore
 from app.services.violation_service import ViolationService
 
@@ -155,6 +156,8 @@ class YOLOIntegration:
     def __init__(self, model_path, tracker_type='botsort', tracking_config=None, special_vehicles=None):
         self.base_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../assets'))
         self.model_dir = os.path.join(self.base_path, 'models')
+        # å†³å®šè®¾å¤‡ï¼šä¼˜å…ˆCUDAï¼Œå¦åˆ™å›žé€€CPU
+        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         
         # 加载模型
         self.model_path = os.path.join(self.model_dir, model_path)
@@ -187,7 +190,7 @@ class YOLOIntegration:
         try:
             # 初始化模型
             model = YOLO(self.model_path)
-            model.to('cuda')  # 使用GPU
+            model.to(self.device)  # 优先使用GPU，不可用时自动回退CPU
             
             # 初始化违规检测服务
             violation_service = ViolationService()
@@ -254,7 +257,7 @@ class YOLOIntegration:
             
             # 初始化模型
             model = YOLO(self.model_path)
-            model.to('cuda')
+            model.to(self.device)
             
             # 添加文件名处理
             filename = os.path.basename(source)
