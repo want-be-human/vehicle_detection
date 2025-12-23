@@ -101,6 +101,7 @@ WebSocket通信工具模块 (websocket_utils.py)
 """
 
 from flask_socketio import SocketIO
+from typing import ClassVar
 import cv2
 import base64
 import time
@@ -109,10 +110,10 @@ socketio = SocketIO()
 
 class VideoStreamConfig:
     # 视频流配置
-    MAX_WIDTH = 1280  # 最大宽度
-    MAX_HEIGHT = 720  # 最大高度
-    JPEG_QUALITY = 80  # JPEG压缩质量(0-100)
-    TARGET_FPS = 25   # 目标帧率
+    MAX_WIDTH: ClassVar[int] = 1280  # 最大宽度
+    MAX_HEIGHT: ClassVar[int] = 720  # 最大高度
+    JPEG_QUALITY: ClassVar[int] = 80  # JPEG压缩质量(0-100)
+    TARGET_FPS: ClassVar[int] = 25   # 目标帧率
 
 def emit_violation_alert(violation_data):
     """

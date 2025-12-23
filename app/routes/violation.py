@@ -90,18 +90,21 @@ def get_violations():
     try:
         filters = {}
         
-        if 'camera_id' in request.args:
-            filters['camera_id'] = int(request.args.get('camera_id'))
+        camera_id = request.args.get('camera_id')
+        if camera_id:
+            filters['camera_id'] = int(camera_id)
             
-        if 'start_time' in request.args:
+        start_time = request.args.get('start_time')
+        if start_time:
             filters['start_time'] = datetime.strptime(
-                request.args.get('start_time'), 
+                start_time, 
                 '%Y-%m-%d %H:%M:%S'
             )
             
-        if 'end_time' in request.args:
+        end_time = request.args.get('end_time')
+        if end_time:
             filters['end_time'] = datetime.strptime(
-                request.args.get('end_time'), 
+                end_time, 
                 '%Y-%m-%d %H:%M:%S'
             )
             

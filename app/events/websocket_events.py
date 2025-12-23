@@ -73,7 +73,7 @@ WebSocket事件处理模块 (websocket_events.py)
 - 错误事件统一处理
 """
 
-from flask_socketio import emit
+from flask_socketio import emit, join_room, leave_room
 from app.utils.websocket_utils import socketio
 from app.services.statistics_service import StatisticsService
 
@@ -109,7 +109,7 @@ def handle_join(data):
     """
     camera_id = data.get('camera_id')
     if camera_id:
-        socketio.join_room(f'camera_{camera_id}', namespace='/violations')
+        join_room(f'camera_{camera_id}')
         emit('joined', {'camera_id': camera_id}, namespace='/violations')
 
 @socketio.on('violation_alert', namespace='/violations')
@@ -160,7 +160,7 @@ def handle_join_stream(data):
     camera_id = data.get('camera_id')
     if camera_id:
         room = f'camera_{camera_id}'
-        socketio.join_room(room, namespace='/video')
+        join_room(room)
         emit('joined_stream', {'camera_id': camera_id}, namespace='/video')
 
 @socketio.on('leave_stream', namespace='/video')
@@ -174,7 +174,7 @@ def handle_leave_stream(data):
     camera_id = data.get('camera_id')
     if camera_id:
         room = f'camera_{camera_id}'
-        socketio.leave_room(room, namespace='/video')
+        leave_room(room)
         emit('left_stream', {'camera_id': camera_id}, namespace='/video')
 
 @socketio.on('video_frame', namespace='/video')
@@ -188,7 +188,7 @@ def handle_video_frame(data):
     camera_id = data.get('camera_id')
     if camera_id:
         room = f'camera_{camera_id}'
-        emit('video_frame', data, room=room)
+        emit('video_frame', data, to=room)
 
 @socketio.on('error', namespace='/video')
 def handle_video_error(error_data):

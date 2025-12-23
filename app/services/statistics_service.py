@@ -301,3 +301,50 @@ class StatisticsService:
 
         results = [record.to_dict() for record in records]
         return results
+
+    @staticmethod
+    def get_summary(start_date=None, end_date=None):
+        """
+        获取统计概要信息
+        Args:
+            start_date (str, optional): 开始日期（YYYY-MM-DD）
+            end_date (str, optional): 结束日期（YYYY-MM-DD）
+        Returns:
+            dict: 统计概要信息
+        """
+        query = StatisticsModel.query
+        
+        if start_date:
+            start = datetime.strptime(start_date, "%Y-%m-%d")
+            query = query.filter(StatisticsModel.date >= start)  # type: ignore
+        
+        if end_date:
+            end = datetime.strptime(end_date, "%Y-%m-%d") + timedelta(days=1)
+            query = query.filter(StatisticsModel.date < end)  # type: ignore
+        
+        records = query.all()
+        
+        if not records:
+            return {
+                'total_count': 0,
+                'vehicle_distribution': {},
+                'peak_hours': [],
+                'days_count': 0
+            }
+        
+        total_count = sum(r.total_count or 0 for r in records)
+        
+        # 合并车辆分布
+        vehicle_distribution: dict = {}
+        for record in records:
+            if record.vehicle_distribution:
+                for vehicle_type, count in record.vehicle_distribution.items():
+                    vehicle_distribution[vehicle_type] = vehicle_distribution.get(vehicle_type, 0) + count
+        
+        return {
+            'total_count': total_count,
+            'vehicle_distribution': vehicle_distribution,
+            'days_count': len(records),
+            'start_date': start_date,
+            'end_date': end_date
+        }
