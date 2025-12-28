@@ -1,3 +1,4 @@
+# ruff: noqa: E402
 from datetime import datetime
 import os
 import sys
@@ -6,11 +7,11 @@ import sys
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.append(project_root)
 
-from app import db, create_app
-from app.models.camera import Camera
-from app.models.detection import Detection
-from app.models.statistics import StatisticsModel
-from app.config import Config
+from app import db, create_app  # noqa: E402
+from app.models.camera import Camera  # noqa: E402
+from app.models.detection import Detection  # noqa: E402
+from app.models.statistics import StatisticsModel  # noqa: E402
+from app.config import Config  # noqa: E402
 
 def init_db():
     """初始化数据库"""

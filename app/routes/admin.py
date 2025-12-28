@@ -6,7 +6,7 @@ from flask import Blueprint, request, jsonify
 from app.models.user import User
 from app import db
 
-bp = Blueprint('admin', __name__, url_prefix='/admin')
+bp = Blueprint('admin', __name__)
 
 @bp.route('/delete_user', methods=['DELETE'])
 def delete_user():

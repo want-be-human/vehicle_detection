@@ -80,7 +80,6 @@ REST API接口：
 from flask import Blueprint, request, jsonify
 from datetime import datetime
 from app.services.violation_service import ViolationService
-from app.models.violation import Violation
 
 violation_blueprint = Blueprint('violation', __name__)
 violation_service = ViolationService()

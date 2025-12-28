@@ -62,7 +62,6 @@ def create_app(config_class=Config):
     socketio.init_app(app, cors_allowed_origins="*")
 
      # 延迟导入避免循环引用
-    from app.services.statistics_service import StatisticsService
     from app.config.scheduler_config import scheduler
 
     # 初始化定时任务
@@ -78,9 +77,11 @@ def create_app(config_class=Config):
     from app.routes.violation import violation_blueprint
     from app.routes.history import history_blueprint
     from app.routes.statistics import statistics_blueprint
+    from app.routes.admin import bp as admin_blueprint
    #  from app.routes.plugins import plugins_blueprint
 
     app.register_blueprint(connect_blueprint)
+    app.register_blueprint(admin_blueprint, url_prefix='/admin')
     app.register_blueprint(auth_blueprint, url_prefix='/auth')
     app.register_blueprint(camera_blueprint, url_prefix='/camera')
     app.register_blueprint(detection_blueprint, url_prefix='/detection')

@@ -1,0 +1,27 @@
+{
+  "include": ["app", "tests"],
+  "exclude": [
+    "**/__pycache__",
+    "**/node_modules",
+    "**/.git",
+    ".venv",
+    "venv",
+    "htmlcov",
+    "pytest"
+  ],
+  "typeCheckingMode": "basic",
+  "pythonVersion": "3.9",
+  "reportMissingImports": "warning",
+  "reportMissingTypeStubs": "none",
+  "reportUnknownMemberType": "none",
+  "reportUnknownParameterType": "none",
+  "reportUnknownVariableType": "none",
+  "reportUnknownArgumentType": "none",
+  "reportPrivateUsage": "none",
+  "reportUnusedImport": "warning",
+  "reportUnusedVariable": "warning",
+  "reportOptionalMemberAccess": "none",
+  "reportOptionalSubscript": "none",
+  "reportGeneralTypeIssues": "none",
+  "reportArgumentType": "none"
+}

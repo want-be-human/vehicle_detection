@@ -6,12 +6,12 @@ from flask import Blueprint, request, jsonify
 from app.services.auth_service import authenticate_user, register_user
 
 # 将 bp 改为 auth_blueprint
-auth_blueprint = Blueprint('auth', __name__, url_prefix='/auth')
+auth_blueprint = Blueprint('auth', __name__)
 
 @auth_blueprint.route('/register', methods=['POST'])
 def register():
     data = request.json
-    user = register_user(data['username'], data['password'], data['role'])
+    register_user(data['username'], data['password'], data['role'])
     return jsonify({'message': 'User registered successfully'}), 200
 
 @auth_blueprint.route('/login', methods=['POST'])
