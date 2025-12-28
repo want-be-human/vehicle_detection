@@ -37,3 +37,12 @@
 2025-12-28 23:47:15,022 [INFO] D:\vehicle_detection\app\utils\logging_utils.py:11 - log_info: Test info message
 2025-12-28 23:47:15,026 [ERROR] D:\vehicle_detection\app\utils\logging_utils.py:14 - log_error: Test error message
 2025-12-28 23:47:15,028 [INFO] D:\vehicle_detection\app\utils\logging_utils.py:18 - log_detection: Detection: Test detection message
+2025-12-29 00:22:41,114 [INFO] D:\vehicle_detection\app\utils\logging_utils.py:11 - log_info: Test info message
+2025-12-29 00:22:41,116 [ERROR] D:\vehicle_detection\app\utils\logging_utils.py:14 - log_error: Test error message
+2025-12-29 00:22:41,119 [INFO] D:\vehicle_detection\app\utils\logging_utils.py:18 - log_detection: Detection: Test detection message
+2025-12-29 00:25:32,306 [INFO] D:\vehicle_detection\app\utils\logging_utils.py:11 - log_info: Test info message
+2025-12-29 00:25:32,309 [ERROR] D:\vehicle_detection\app\utils\logging_utils.py:14 - log_error: Test error message
+2025-12-29 00:25:32,313 [INFO] D:\vehicle_detection\app\utils\logging_utils.py:18 - log_detection: Detection: Test detection message
+2025-12-29 00:32:40,717 [INFO] D:\vehicle_detection\app\utils\logging_utils.py:11 - log_info: Test info message
+2025-12-29 00:32:40,719 [ERROR] D:\vehicle_detection\app\utils\logging_utils.py:14 - log_error: Test error message
+2025-12-29 00:32:40,721 [INFO] D:\vehicle_detection\app\utils\logging_utils.py:18 - log_detection: Detection: Test detection message

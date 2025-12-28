@@ -28,9 +28,74 @@ from pathlib import Path
 import webbrowser
 import time
 import xml.etree.ElementTree as ET
+import json
+import re
 
 
-def write_txt_summary(project_root: Path) -> None:
+def parse_pytest_output(output: str) -> list:
+    """解析pytest输出，提取失败的测试用例信息"""
+    failed_tests = []
+    test_to_error = {}
+    lines = output.split('\n')
+    
+    # 第一步：从 FAILURES 区域提取详细错误信息
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        # 查找失败测试的分隔线
+        if line.startswith('_____') and i + 1 < len(lines) and not 'FAILURES' in lines[i]:
+            # 提取测试名称（在下划线包围的行中）
+            test_name = line.strip('_').strip()
+            if test_name and '::' in test_name:
+                # 查找 E   开头的错误行
+                j = i + 1
+                error_lines = []
+                while j < len(lines) and not lines[j].startswith('_____') and not lines[j].startswith('===='):
+                    if lines[j].startswith('E   '):
+                        error_lines.append(lines[j][4:].strip())
+                    j += 1
+                
+                if error_lines:
+                    test_to_error[test_name] = error_lines[0]  # 取第一个错误行
+                i = j
+                continue
+        i += 1
+    
+    # 第二步：从 short test summary 获取测试列表
+    in_summary = False
+    for line in lines:
+        if 'short test summary' in line.lower():
+            in_summary = True
+            continue
+        if in_summary and line.startswith('FAILED '):
+            test_path = line[7:].split(' - ')[0].strip()
+            # 优先使用从 FAILURES 区域提取的详细错误，用完整路径或测试方法名匹配
+            error_msg = test_to_error.get(test_path, "")
+            if not error_msg:
+                # 尝试只用测试方法名匹配
+                for key, value in test_to_error.items():
+                    if key in test_path:
+                        error_msg = value
+                        break
+            
+            # 如果没有找到，尝试从当前行提取
+            if not error_msg and ' - ' in line:
+                error_msg = line.split(' - ', 1)[1].strip()
+            
+            if not error_msg:
+                error_msg = "Test failed"
+            
+            failed_tests.append({
+                'test': test_path,
+                'error': error_msg
+            })
+        elif in_summary and line.startswith('='):
+            break
+    
+    return failed_tests
+
+
+def write_txt_summary(project_root: Path, failed_tests: list = None) -> None:
     xml_path = project_root / "coverage.xml"
     out_path = project_root / "coverage_summary.txt"
     if not xml_path.exists():
@@ -76,6 +141,20 @@ def write_txt_summary(project_root: Path) -> None:
     for fname in sorted(per_file):
         stmt_pct, branch_pct = per_file[fname]
         lines.append(f"{fname}: statements {stmt_pct:.2f}%, branches {branch_pct:.2f}%")
+    
+    # 添加失败测试信息
+    if failed_tests:
+        lines.append("")
+        lines.append("=" * 80)
+        lines.append("Failed Tests Summary")
+        lines.append("=" * 80)
+        lines.append(f"Total Failed: {len(failed_tests)}")
+        lines.append("")
+        
+        for idx, test in enumerate(failed_tests, 1):
+            lines.append(f"{idx}. {test['test']}")
+            lines.append(f"   Error: {test['error']}")
+            lines.append("")
 
     out_path.write_text("\n".join(lines), encoding="utf-8")
     print(f"[INFO] 已生成覆盖率摘要: {out_path}")
@@ -159,8 +238,26 @@ def main():
     env.pop("PYTEST_ADDOPTS", None)
 
     start = time.time()
-    result = subprocess.run(pytest_cmd, cwd=project_root, env=env)
+    # 捕获 pytest 输出以解析失败信息
+    result = subprocess.run(
+        pytest_cmd, 
+        cwd=project_root, 
+        env=env,
+        capture_output=True,
+        text=True
+    )
     duration = time.time() - start
+    
+    # 显示输出
+    if result.stdout:
+        print(result.stdout)
+    if result.stderr:
+        print(result.stderr, file=sys.stderr)
+    
+    # 解析失败的测试
+    failed_tests = []
+    if result.returncode != 0:
+        failed_tests = parse_pytest_output(result.stdout)
 
     print("========================================")
     print("  测试执行完成")
@@ -171,6 +268,8 @@ def main():
         print("[RESULT] 所有测试通过 ✓")
     else:
         print("[RESULT] 存在失败的测试 ✗")
+        if failed_tests:
+            print(f"[INFO] 发现 {len(failed_tests)} 个失败的测试用例")
         print("[TIP] 可使用 --failed 只运行上次失败的测试")
         print("[TIP] 可使用 --verbose 查看详细错误信息")
         print("[TIP] 可使用 -k 'pattern' 只运行匹配的测试")
@@ -188,7 +287,7 @@ def main():
             print("[INFO] 如需自动打开 HTML 报告，请添加 --open 参数")
 
     if not args.quick:
-        write_txt_summary(project_root)
+        write_txt_summary(project_root, failed_tests)
 
     sys.exit(result.returncode)
 
