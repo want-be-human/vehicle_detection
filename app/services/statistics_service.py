@@ -286,8 +286,12 @@ class StatisticsService:
             start_time = datetime.strptime(f"{range_value}-01-01", "%Y-%m-%d")
             end_time = start_time.replace(year=start_time.year + 1)
         elif query_type == "month":
-            start_time = datetime.strptime(f"{range_value}-01", "%Y-%m")
-            end_time = start_time + timedelta(days=31)
+            start_time = datetime.strptime(f"{range_value}-01", "%Y-%m-%d")
+            # 计算下个月的第一天
+            if start_time.month == 12:
+                end_time = start_time.replace(year=start_time.year + 1, month=1)
+            else:
+                end_time = start_time.replace(month=start_time.month + 1)
         elif query_type == "week":
             start_time = datetime.strptime(range_value, "%Y-%m-%d")
             end_time = start_time + timedelta(days=7)

@@ -127,8 +127,8 @@ def test_tampered_jwt_detection(auth_service):
         tampered = token[:-1] + b"X" # type: ignore
     else:
         tampered = token[:-1] + "X"
-    with pytest.raises(InvalidSignatureError):
-        # decode will fail due to signature mismatch
+    with pytest.raises((InvalidSignatureError, jwt.DecodeError)):
+        # decode will fail due to signature mismatch (could be DecodeError in some JWT versions)
         jwt.decode(tampered, secret, algorithms=["HS256"])
 
 

@@ -1,5 +1,5 @@
 Coverage Summary (statements & branches)
-Total - statements: 76.25%, branches: 54.05%
+Total - statements: 81.63%, branches: 62.27%
 
 __init__.py: statements 100.00%, branches 100.00%
 config/__init__.py: statements 100.00%, branches 100.00%
@@ -13,7 +13,6 @@ models/statistics.py: statements 100.00%, branches 100.00%
 models/user.py: statements 100.00%, branches 100.00%
 models/violation.py: statements 100.00%, branches 100.00%
 routes/__init__.py: statements 100.00%, branches 100.00%
-routes/admin.py: statements 33.33%, branches 0.00%
 routes/auth.py: statements 100.00%, branches 100.00%
 routes/camera.py: statements 100.00%, branches 100.00%
 routes/connect.py: statements 100.00%, branches 100.00%
@@ -23,27 +22,13 @@ routes/statistics.py: statements 94.44%, branches 100.00%
 routes/violation.py: statements 100.00%, branches 100.00%
 services/__init__.py: statements 100.00%, branches 100.00%
 services/auth_service.py: statements 100.00%, branches 100.00%
-services/camera_service.py: statements 73.45%, branches 63.89%
-services/detection_service.py: statements 47.49%, branches 9.09%
+services/camera_service.py: statements 87.61%, branches 86.11%
+services/detection_service.py: statements 60.34%, branches 20.45%
 services/history_service.py: statements 100.00%, branches 100.00%
-services/statistics_service.py: statements 69.83%, branches 46.67%
-services/violation_service.py: statements 85.71%, branches 80.00%
+services/statistics_service.py: statements 70.34%, branches 46.88%
+services/violation_service.py: statements 100.00%, branches 95.00%
 utils/__init__.py: statements 100.00%, branches 100.00%
 utils/logging_utils.py: statements 100.00%, branches 100.00%
 utils/violation_utils.py: statements 100.00%, branches 100.00%
 utils/websocket_utils.py: statements 83.10%, branches 100.00%
 utils/yolo_integration.py: statements 47.52%, branches 25.00%
-
-================================================================================
-Failed Tests Summary
-================================================================================
-Total Failed: 3
-
-1. tests/test_services.py::TestStatisticsServiceAdvanced::test_query_statistics_type_day
-   Error: Test failed
-
-2. tests/test_services.py::TestStatisticsServiceAdvanced::test_query_statistics_type_month
-   Error: Test failed
-
-3. tests/test_services.py::TestStatisticsServiceAdvanced::test_query_statistics_type_week
-   Error: Test failed

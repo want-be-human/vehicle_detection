@@ -28,8 +28,6 @@ from pathlib import Path
 import webbrowser
 import time
 import xml.etree.ElementTree as ET
-import json
-import re
 
 
 def parse_pytest_output(output: str) -> list:

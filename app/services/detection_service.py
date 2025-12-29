@@ -192,7 +192,7 @@ class DetectionService:
             # 初始化视频写入器
             current_hour = datetime.now().hour
             output_path = DetectionService._get_video_path(save_dir, camera_id, current_hour)
-            out = None  # type: cv2.VideoWriter | None
+            out: cv2.VideoWriter | None = None
             
             # 帧率控制
             frame_interval = 1.0 / VideoStreamConfig.TARGET_FPS

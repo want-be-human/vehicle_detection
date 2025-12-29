@@ -41,5 +41,16 @@ class Detection(db.Model):
 
     def __repr__(self):
         return f"<Detection {self.vehicle_type} at {self.timestamp}>"
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'camera_id': self.camera_id,
+            'timestamp': self.timestamp.strftime('%Y-%m-%d %H:%M:%S') if self.timestamp else None,
+            'video_path': self.video_path,
+            'vehicle_type': self.vehicle_type,
+            'location': self.location,
+            'is_violation': self.is_violation
+        }
 
 
