@@ -32,3 +32,20 @@ utils/logging_utils.py: statements 100.00%, branches 100.00%
 utils/violation_utils.py: statements 100.00%, branches 100.00%
 utils/websocket_utils.py: statements 83.10%, branches 100.00%
 utils/yolo_integration.py: statements 47.52%, branches 25.00%
+
+================================================================================
+Failed Tests Summary
+================================================================================
+Total Failed: 4
+
+1. tests/test_security_audit.py::TestSecurityAudit::test_jwt_secret_key_not_hardcoded
+   Error: Test failed
+
+2. tests/test_security_audit.py::TestSecurityAudit::test_password_minimum_length_validation
+   Error: Test failed
+
+3. tests/test_security_audit.py::TestSecurityAudit::test_camera_delete_requires_authentication
+   Error: Test failed
+
+4. tests/test_security_audit.py::TestSecurityAudit::test_password_must_contain_special_characters
+   Error: Test failed
