@@ -119,3 +119,141 @@ class TestSecurityAudit:
             assert "特殊字符" in str(e) or "special" in str(e).lower()
         finally:
             db_session.session.rollback()
+
+
+class TestInputValidation:
+    """输入验证测试类 - 用于发现输入验证缺陷"""
+    
+    def test_username_length_validation(self, db_session):
+        """
+        测试5：用户名长度验证
+        
+        安全要求：用户名应有最小和最大长度限制。
+        过短或过长的用户名应被拒绝。
+        
+        CWE-20: Improper Input Validation
+        """
+        from app.services.auth_service import register_user
+        
+        # 测试单字符用户名
+        short_username = "a"
+        
+        try:
+            user = register_user(short_username, "ValidPass123!", "user")
+            assert user is None, \
+                f"输入验证缺陷: 过短的用户名 '{short_username}' (长度={len(short_username)}) 不应被接受"
+        except ValueError as e:
+            # 期望抛出用户名长度验证异常
+            assert "用户名" in str(e) or "username" in str(e).lower()
+        finally:
+            db_session.session.rollback()
+    
+    def test_register_duplicate_username_returns_proper_error(self, client, db_session):
+        """
+        测试6：重复用户名注册应返回友好错误
+        
+        安全要求：当用户名已存在时，应返回400错误码和友好提示，
+        而不是500服务器内部错误或暴露数据库错误信息。
+        
+        CWE-209: Generation of Error Message Containing Sensitive Information
+        """
+        from app.services.auth_service import register_user
+        
+        # 先注册一个用户
+        register_user("duplicate_test_user", "Password123!", "user")
+        db_session.session.commit()
+        
+        # 尝试用相同用户名再次注册 - 捕获异常来检查错误处理
+        try:
+            response = client.post('/auth/register', json={
+                'username': 'duplicate_test_user',
+                'password': 'AnotherPass456!',
+                'role': 'user'
+            })
+            
+            # 如果没有异常，检查状态码
+            assert response.status_code == 400, \
+                f"错误处理缺陷: 重复用户名应返回400，但返回了 {response.status_code}"
+        except Exception as e:
+            # 如果抛出异常到测试层，说明路由层没有正确处理异常
+            error_msg = str(e).lower()
+            assert False, \
+                f"错误处理缺陷: 重复用户名注册导致未处理的异常暴露到客户端 - {type(e).__name__}: 系统应返回友好的400错误而非抛出异常"
+
+
+class TestRateLimiting:
+    """速率限制测试类 - 用于发现防暴力破解缺陷"""
+    
+    def test_login_rate_limiting(self, client, db_session):
+        """
+        测试7：登录接口应有速率限制
+        
+        安全要求：登录接口应限制短时间内的请求次数，
+        防止暴力破解攻击。
+        
+        CWE-307: Improper Restriction of Excessive Authentication Attempts
+        """
+        from app.services.auth_service import register_user
+        
+        # 创建测试用户
+        register_user("rate_limit_test_user", "CorrectPassword123!", "user")
+        db_session.session.commit()
+        
+        # 模拟暴力破解：连续发送10次错误密码请求
+        failed_attempts = 0
+        for i in range(10):
+            response = client.post('/auth/login', json={
+                'username': 'rate_limit_test_user',
+                'password': f'WrongPassword{i}'
+            })
+            if response.status_code == 401:
+                failed_attempts += 1
+        
+        # 再次尝试登录
+        response = client.post('/auth/login', json={
+            'username': 'rate_limit_test_user',
+            'password': 'AnotherWrongPassword'
+        })
+        
+        # 期望：应返回429 Too Many Requests，表示已被速率限制
+        assert response.status_code == 429, \
+            f"安全漏洞: 连续{failed_attempts}次失败登录后，接口仍返回 {response.status_code} 而不是 429，缺少速率限制保护"
+
+
+class TestDataValidation:
+    """数据验证测试类 - 用于发现业务数据验证缺陷"""
+    
+    def test_camera_ip_format_sql_injection(self, client, db_session):
+        """
+        测试8：摄像头IP地址应防止特殊字符注入
+        
+        安全要求：IP地址字段应只接受有效的IPv4格式，
+        拒绝包含SQL注入或特殊字符的输入，并返回友好错误。
+        
+        CWE-89: SQL Injection / CWE-209: Error Message Information Leak
+        """
+        # 尝试在IP地址中注入SQL语句
+        malicious_ip = "192.168.1.1'; DROP TABLE cameras;--"
+        
+        try:
+            response = client.post('/camera/cameras', json={
+                'name': 'Malicious Camera',
+                'ip_address': malicious_ip,
+                'port': 554,
+                'url': 'rtsp://test',
+                'resolution': '1920x1080',
+                'frame_rate': 30,
+                'encoding_format': 'H.264'
+            })
+            
+            # 期望：应返回400验证错误，而不是500或其他错误
+            assert response.status_code == 400, \
+                f"安全漏洞: 包含特殊字符的IP地址应返回400验证错误，但返回了 {response.status_code}"
+            
+            # 验证响应消息表明是验证错误，而非泄露内部信息
+            response_json = response.get_json()
+            assert response_json is not None, "应返回JSON格式的错误信息"
+        except Exception as e:
+            # 如果抛出异常，说明错误处理不完善
+            assert False, \
+                f"错误处理缺陷: 非法IP地址导致未处理异常 - {type(e).__name__}: 系统应返回400验证错误而非暴露内部异常"

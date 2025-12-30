@@ -106,7 +106,7 @@ pytest tests/test_security_audit.py -v
 | test_services.py | 服务层测试 | 82 |
 | test_utils.py | 工具类测试 | 45 |
 | test_violation.py | 违规检测测试 | 25 |
-| **test_security_audit.py** | **安全审计测试（失败用例）** | **4** |
+| **test_security_audit.py** | **安全审计测试（失败用例）** | **8** |
 
 ### 3.3 覆盖率计算
 
@@ -148,11 +148,11 @@ pytest --cov=app --cov-branch tests/ --cov-report=html --cov-report=xml
 
 | 指标 | 数值 |
 |------|------|
-| 总测试用例数 | 328 |
+| 总测试用例数 | 332 |
 | 通过数 | 324 |
-| **失败数** | **4** |
+| **失败数** | **8** |
 | 跳过数 | 0 |
-| 通过率 | 98.78% |
+| 通过率 | 97.59% |
 
 **测试执行输出**：
 ```
@@ -161,14 +161,14 @@ platform win32 -- Python 3.12.7, pytest-7.4.4, pluggy-1.6.0
 rootdir: D:\vehicle_detection
 configfile: pytest.ini
 plugins: anyio-4.2.0, cov-7.0.0, stub-1.1.0
-collected 328 items
+collected 332 items
 
 tests/test_auth.py ......................................                                                       [ 11%]
 tests/test_config.py ........                                                                                   [ 14%]
 tests/test_detection.py ...............                                                                         [ 18%]
 tests/test_models.py ...........................................                                                [ 31%]
 tests/test_routes.py ....................................................................                        [ 52%]
-tests/test_security_audit.py FFFF                                                                               [ 53%]
+tests/test_security_audit.py FFFFFFFF                                                                           [ 54%]
 tests/test_services.py ..................................................................................       [ 78%]
 tests/test_utils.py .............................................                                               [ 92%]
 tests/test_violation.py .........................                                                               [100%]
@@ -178,7 +178,11 @@ FAILED tests/test_security_audit.py::TestSecurityAudit::test_jwt_secret_key_not_
 FAILED tests/test_security_audit.py::TestSecurityAudit::test_password_minimum_length_validation
 FAILED tests/test_security_audit.py::TestSecurityAudit::test_camera_delete_requires_authentication
 FAILED tests/test_security_audit.py::TestSecurityAudit::test_password_must_contain_special_characters
-================== 4 failed, 324 passed, 1 warning in 10.86s ==================
+FAILED tests/test_security_audit.py::TestInputValidation::test_username_length_validation
+FAILED tests/test_security_audit.py::TestInputValidation::test_register_duplicate_username_returns_proper_error
+FAILED tests/test_security_audit.py::TestRateLimiting::test_login_rate_limiting
+FAILED tests/test_security_audit.py::TestDataValidation::test_camera_ip_format_sql_injection
+================== 8 failed, 324 passed, 1 warning in 12.51s ==================
 ```
 
 【人工附上截图：pytest运行结果截图】
@@ -217,12 +221,16 @@ FAILED tests/test_security_audit.py::TestSecurityAudit::test_password_must_conta
 
 ### 4.3 失败用例统计
 
-| 序号 | 测试用例名称 | 缺陷描述 | 严重等级 |
-|------|--------------|----------|----------|
-| 1 | test_jwt_secret_key_not_hardcoded | JWT密钥硬编码在源代码中 | Critical |
-| 2 | test_password_minimum_length_validation | 弱密码可以注册成功 | High |
-| 3 | test_camera_delete_requires_authentication | 删除摄像头接口无权限验证 | High |
-| 4 | test_password_must_contain_special_characters | 密码无特殊字符要求 | Medium |
+| 序号 | 测试用例名称 | 缺陷描述 | 严重等级 | 缺陷类型 |
+|------|--------------|----------|----------|----------|
+| 1 | test_jwt_secret_key_not_hardcoded | JWT密钥硬编码在源代码中 | Critical | 安全配置 |
+| 2 | test_password_minimum_length_validation | 弱密码可以注册成功 | High | 输入验证 |
+| 3 | test_camera_delete_requires_authentication | 删除摄像头接口无权限验证 | High | 权限控制 |
+| 4 | test_password_must_contain_special_characters | 密码无特殊字符要求 | Medium | 输入验证 |
+| 5 | test_username_length_validation | 用户名长度无限制 | Medium | 输入验证 |
+| 6 | test_register_duplicate_username_returns_proper_error | 重复注册异常未处理 | Medium | 错误处理 |
+| 7 | test_login_rate_limiting | 登录接口无速率限制 | High | 安全防护 |
+| 8 | test_camera_ip_format_sql_injection | IP验证异常未友好处理 | Medium | 错误处理 |
 
 ---
 
@@ -576,20 +584,403 @@ def validate_password_strength(password):
 
 ---
 
+#### 缺陷5：用户名长度验证缺失（Medium）
+
+**测试文件**：`tests/test_security_audit.py`
+
+**测试用例代码**：
+```python
+def test_username_length_validation(self, db_session):
+    """
+    测试5：用户名长度验证
+    
+    安全要求：用户名应有最小和最大长度限制。
+    过短或过长的用户名应被拒绝。
+    
+    CWE-20: Improper Input Validation
+    """
+    from app.services.auth_service import register_user
+    
+    # 测试单字符用户名
+    short_username = "a"
+    
+    try:
+        user = register_user(short_username, "ValidPass123!", "user")
+        assert user is None, \
+            f"输入验证缺陷: 过短的用户名 '{short_username}' (长度={len(short_username)}) 不应被接受"
+    except ValueError as e:
+        # 期望抛出用户名长度验证异常
+        assert "用户名" in str(e) or "username" in str(e).lower()
+    finally:
+        db_session.session.rollback()
+```
+
+**测试失败输出**：
+```
+FAILED tests/test_security_audit.py::TestInputValidation::test_username_length_validation
+E   AssertionError: 输入验证缺陷: 过短的用户名 'a' (长度=1) 不应被接受
+E   assert <User 1> is None
+```
+
+【人工附上截图：test_username_length_validation 失败输出截图】
+
+**定位过程**：
+
+1. **运行测试**：使用单字符用户名尝试注册
+2. **分析错误信息**：用户成功创建，说明无用户名长度验证
+3. **代码定位**：查看 `app/services/auth_service.py` 的 `register_user` 函数
+
+**缺陷代码位置**：`app/services/auth_service.py` 第26-31行
+
+```python
+def register_user(username, password, role):
+    # 缺少用户名验证！
+    hashed_password = generate_password_hash(password)
+    user = User(username=username, password=hashed_password, role=role)
+    db.session.add(user)
+    db.session.commit()
+    return user
+```
+
+**根因分析**：
+- `register_user` 函数没有对用户名进行任何验证
+- 缺乏输入验证机制
+- 违反 **CWE-20: Improper Input Validation**
+
+**修复建议**：
+```python
+def validate_username(username):
+    """验证用户名"""
+    if len(username) < 3:
+        raise ValueError("用户名长度至少3个字符")
+    if len(username) > 20:
+        raise ValueError("用户名长度不能超过20个字符")
+    if not username.isalnum():
+        raise ValueError("用户名只能包含字母和数字")
+    return True
+
+def register_user(username, password, role):
+    validate_username(username)  # 添加验证
+    # ... 其余代码
+```
+
+---
+
+#### 缺陷6：重复注册异常处理缺失（Medium）
+
+**测试文件**：`tests/test_security_audit.py`
+
+**测试用例代码**：
+```python
+def test_register_duplicate_username_returns_proper_error(self, client, db_session):
+    """
+    测试6：重复用户名注册应返回友好错误
+    
+    安全要求：当用户名已存在时，应返回400错误码和友好提示，
+    而不是500服务器内部错误或暴露数据库错误信息。
+    
+    CWE-209: Generation of Error Message Containing Sensitive Information
+    """
+    from app.services.auth_service import register_user
+    
+    # 先注册一个用户
+    register_user("duplicate_test_user", "Password123!", "user")
+    db_session.session.commit()
+    
+    # 尝试用相同用户名再次注册 - 捕获异常来检查错误处理
+    try:
+        response = client.post('/auth/register', json={
+            'username': 'duplicate_test_user',
+            'password': 'AnotherPass456!',
+            'role': 'user'
+        })
+        assert response.status_code == 400, \
+            f"错误处理缺陷: 重复用户名应返回400，但返回了 {response.status_code}"
+    except Exception as e:
+        assert False, \
+            f"错误处理缺陷: 重复用户名注册导致未处理的异常暴露到客户端 - {type(e).__name__}"
+```
+
+**测试失败输出**：
+```
+FAILED tests/test_security_audit.py::TestInputValidation::test_register_duplicate_username_returns_proper_error
+E   AssertionError: 错误处理缺陷: 重复用户名注册导致未处理的异常暴露到客户端 - IntegrityError: 
+    系统应返回友好的400错误而非抛出异常
+```
+
+【人工附上截图：test_register_duplicate_username_returns_proper_error 失败输出截图】
+
+**定位过程**：
+
+1. **运行测试**：注册已存在的用户名
+2. **分析错误信息**：系统抛出 `IntegrityError` 异常，未被正确处理
+3. **代码定位**：查看 `app/routes/auth.py` 的注册路由
+
+**缺陷代码位置**：`app/routes/auth.py` 第11-15行
+
+```python
+@auth_blueprint.route('/register', methods=['POST'])
+def register():
+    data = request.json
+    # 缺少异常处理！数据库错误会直接暴露给客户端
+    register_user(data['username'], data['password'], data['role'])
+    return jsonify({'message': 'User registered successfully'}), 200
+```
+
+**根因分析**：
+- 路由层未捕获数据库异常
+- 数据库完整性错误（UNIQUE constraint）直接暴露给客户端
+- 违反 **CWE-209: Generation of Error Message Containing Sensitive Information**
+
+**修复建议**：
+```python
+from sqlalchemy.exc import IntegrityError
+
+@auth_blueprint.route('/register', methods=['POST'])
+def register():
+    data = request.json
+    try:
+        register_user(data['username'], data['password'], data['role'])
+        return jsonify({'message': 'User registered successfully'}), 200
+    except IntegrityError:
+        db.session.rollback()
+        return jsonify({'error': '用户名已存在'}), 400
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
+```
+
+---
+
+#### 缺陷7：登录接口缺少速率限制（High）
+
+**测试文件**：`tests/test_security_audit.py`
+
+**测试用例代码**：
+```python
+def test_login_rate_limiting(self, client, db_session):
+    """
+    测试7：登录接口应有速率限制
+    
+    安全要求：登录接口应限制短时间内的请求次数，
+    防止暴力破解攻击。
+    
+    CWE-307: Improper Restriction of Excessive Authentication Attempts
+    """
+    from app.services.auth_service import register_user
+    
+    # 创建测试用户
+    register_user("rate_limit_test_user", "CorrectPassword123!", "user")
+    db_session.session.commit()
+    
+    # 模拟暴力破解：连续发送10次错误密码请求
+    failed_attempts = 0
+    for i in range(10):
+        response = client.post('/auth/login', json={
+            'username': 'rate_limit_test_user',
+            'password': f'WrongPassword{i}'
+        })
+        if response.status_code == 401:
+            failed_attempts += 1
+    
+    # 再次尝试登录
+    response = client.post('/auth/login', json={
+        'username': 'rate_limit_test_user',
+        'password': 'AnotherWrongPassword'
+    })
+    
+    # 期望：应返回429 Too Many Requests
+    assert response.status_code == 429, \
+        f"安全漏洞: 连续{failed_attempts}次失败登录后，接口仍返回 {response.status_code} 而不是 429"
+```
+
+**测试失败输出**：
+```
+FAILED tests/test_security_audit.py::TestRateLimiting::test_login_rate_limiting
+E   AssertionError: 安全漏洞: 连续10次失败登录后，接口仍返回 401 而不是 429，缺少速率限制保护
+E   assert 401 == 429
+```
+
+【人工附上截图：test_login_rate_limiting 失败输出截图】
+
+**定位过程**：
+
+1. **运行测试**：连续发送10次错误密码的登录请求
+2. **分析错误信息**：系统继续返回401，未触发任何限制
+3. **代码定位**：查看 `app/routes/auth.py` 的登录路由
+
+**缺陷代码位置**：`app/routes/auth.py` 第17-23行
+
+```python
+@auth_blueprint.route('/login', methods=['POST'])
+def login():
+    data = request.json
+    # 缺少速率限制！允许无限次登录尝试
+    success, token = authenticate_user(data['username'], data['password'])
+    if success:
+        return jsonify({'token': token}), 200
+    return jsonify({'message': 'Invalid credentials'}), 401
+```
+
+**根因分析**：
+- 登录接口没有任何速率限制机制
+- 攻击者可以进行无限次暴力破解尝试
+- 违反 **CWE-307: Improper Restriction of Excessive Authentication Attempts**
+
+**修复建议**：
+```python
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+
+limiter = Limiter(key_func=get_remote_address)
+
+@auth_blueprint.route('/login', methods=['POST'])
+@limiter.limit("5 per minute")  # 每分钟最多5次
+def login():
+    data = request.json
+    success, token = authenticate_user(data['username'], data['password'])
+    if success:
+        return jsonify({'token': token}), 200
+    return jsonify({'message': 'Invalid credentials'}), 401
+```
+
+---
+
+#### 缺陷8：API异常处理信息泄露（Medium）
+
+**测试文件**：`tests/test_security_audit.py`
+
+**测试用例代码**：
+```python
+def test_camera_ip_format_sql_injection(self, client, db_session):
+    """
+    测试8：摄像头IP地址应防止特殊字符注入
+    
+    安全要求：IP地址字段应只接受有效的IPv4格式，
+    拒绝包含SQL注入或特殊字符的输入，并返回友好错误。
+    
+    CWE-89: SQL Injection / CWE-209: Error Message Information Leak
+    """
+    # 尝试在IP地址中注入SQL语句
+    malicious_ip = "192.168.1.1'; DROP TABLE cameras;--"
+    
+    try:
+        response = client.post('/camera/cameras', json={
+            'name': 'Malicious Camera',
+            'ip_address': malicious_ip,
+            'port': 554,
+            'url': 'rtsp://test',
+            'resolution': '1920x1080',
+            'frame_rate': 30,
+            'encoding_format': 'H.264'
+        })
+        
+        assert response.status_code == 400, \
+            f"安全漏洞: 包含特殊字符的IP地址应返回400验证错误，但返回了 {response.status_code}"
+    except Exception as e:
+        assert False, \
+            f"错误处理缺陷: 非法IP地址导致未处理异常 - {type(e).__name__}"
+```
+
+**测试失败输出**：
+```
+FAILED tests/test_security_audit.py::TestDataValidation::test_camera_ip_format_sql_injection
+E   AssertionError: 错误处理缺陷: 非法IP地址导致未处理异常 - Exception: 
+    系统应返回400验证错误而非暴露内部异常
+```
+
+【人工附上截图：test_camera_ip_format_sql_injection 失败输出截图】
+
+**定位过程**：
+
+1. **运行测试**：发送包含SQL注入的IP地址
+2. **分析错误信息**：系统抛出异常，内部错误信息暴露
+3. **代码定位**：查看 `app/routes/camera.py` 和 `app/services/camera_service.py`
+
+**缺陷代码位置**：`app/services/camera_service.py` 第100-105行
+
+```python
+# 验证IP地址格式
+ip_parts = data['ip_address'].split('.')
+if len(ip_parts) != 4 or not all(0 <= int(part) <= 255 for part in ip_parts):
+    raise ValueError("Invalid IP address format")
+    
+# 问题：int(part) 可能抛出 ValueError，但错误消息会暴露内部实现
+```
+
+**缺陷代码位置**：`app/routes/camera.py` 第79-85行
+
+```python
+@camera_blueprint.route('/cameras', methods=['POST'])
+def add_camera():
+    data = request.json
+    # 异常被捕获后重新抛出，暴露了内部错误信息
+    CameraService.add_camera(data)
+    return jsonify({"message": "Camera added successfully"}), 201
+```
+
+**根因分析**：
+- IP验证使用 `int()` 转换，非数字字符会抛出 `ValueError`
+- 异常被重新包装但仍暴露内部实现细节
+- 违反 **CWE-209: Generation of Error Message Containing Sensitive Information**
+
+**修复建议**：
+```python
+import re
+
+@staticmethod
+def validate_camera_data(data):
+    # 使用正则表达式验证IP格式
+    ip_pattern = r'^(\d{1,3}\.){3}\d{1,3}$'
+    if not re.match(ip_pattern, data['ip_address']):
+        raise ValueError("Invalid IP address format")
+    
+    ip_parts = data['ip_address'].split('.')
+    if not all(0 <= int(part) <= 255 for part in ip_parts):
+        raise ValueError("Invalid IP address format")
+```
+
+路由层统一错误处理：
+```python
+@camera_blueprint.route('/cameras', methods=['POST'])
+def add_camera():
+    data = request.json
+    try:
+        CameraService.add_camera(data)
+        return jsonify({"message": "Camera added successfully"}), 201
+    except ValueError as e:
+        return jsonify({"error": "Invalid input data"}), 400
+    except Exception:
+        return jsonify({"error": "Internal server error"}), 500
+```
+
+---
+
 ### 5.2 缺陷根因总结
 
 | 缺陷类型 | 数量 | 典型案例 | 改进措施 |
 |----------|------|----------|----------|
 | **安全配置缺陷** | 1 | 硬编码JWT密钥 | 使用环境变量或安全配置管理 |
 | **权限控制缺陷** | 1 | API无认证 | 实现统一认证中间件 |
-| **输入验证缺陷** | 2 | 密码强度验证缺失 | 添加输入验证层 |
+| **输入验证缺陷** | 3 | 密码/用户名验证缺失 | 添加输入验证层 |
+| **错误处理缺陷** | 2 | 异常信息泄露 | 统一错误处理机制 |
+| **安全防护缺陷** | 1 | 无速率限制 | 添加Flask-Limiter |
 
 **缺陷严重等级分布**：
 
 ```
-Critical (严重)  ████████░░  25% (1个)
-High (高)        ████████████████░░  50% (2个)
-Medium (中)      ████████░░  25% (1个)
+Critical (严重)  ████░░░░░░░░░░░░  12.5% (1个)
+High (高)        ████████████░░░░  37.5% (3个)
+Medium (中)      ████████████████  50.0% (4个)
+```
+
+**缺陷类型分布图**：
+
+```
+安全配置  ████░░░░░░░░░░░░  12.5%
+权限控制  ████░░░░░░░░░░░░  12.5%
+输入验证  ████████████░░░░  37.5%
+错误处理  ████████░░░░░░░░  25.0%
+安全防护  ████░░░░░░░░░░░░  12.5%
 ```
 
 ---
@@ -675,7 +1066,7 @@ Medium (中)      ████████░░  25% (1个)
 # 运行所有测试
 pytest tests/ -v
 
-# 运行安全审计测试（会失败的用例）
+# 运行安全审计测试（会失败的8个用例）
 pytest tests/test_security_audit.py -v
 
 # 生成覆盖率报告
@@ -686,6 +1077,12 @@ pytest --lf
 
 # 显示最慢的10个测试
 pytest --durations=10
+
+# 仅运行特定测试类
+pytest tests/test_security_audit.py::TestSecurityAudit -v
+pytest tests/test_security_audit.py::TestInputValidation -v
+pytest tests/test_security_audit.py::TestRateLimiting -v
+pytest tests/test_security_audit.py::TestDataValidation -v
 ```
 
 ### B. 覆盖率报告位置
@@ -697,6 +1094,8 @@ pytest --durations=10
 ### C. 安全测试用例文件
 
 **文件路径**：`tests/test_security_audit.py`
+
+**测试类组织结构**：
 
 ```python
 """
@@ -714,31 +1113,55 @@ class TestSecurityAudit:
     """安全审计测试类 - 用于发现系统安全漏洞"""
     
     def test_jwt_secret_key_not_hardcoded(self):
-        """测试1：JWT密钥不应硬编码"""
-        # ... 完整代码见 tests/test_security_audit.py
+        """测试1：JWT密钥不应硬编码 [Critical]"""
     
     def test_password_minimum_length_validation(self, db_session):
-        """测试2：密码最小长度验证"""
-        # ... 完整代码见 tests/test_security_audit.py
+        """测试2：密码最小长度验证 [High]"""
     
     def test_camera_delete_requires_authentication(self, client, db_session):
-        """测试3：删除摄像头需要身份认证"""
-        # ... 完整代码见 tests/test_security_audit.py
+        """测试3：删除摄像头需要身份认证 [High]"""
     
     def test_password_must_contain_special_characters(self, db_session):
-        """测试4：密码必须包含特殊字符"""
-        # ... 完整代码见 tests/test_security_audit.py
+        """测试4：密码必须包含特殊字符 [Medium]"""
+
+
+class TestInputValidation:
+    """输入验证测试类 - 用于发现输入验证缺陷"""
+    
+    def test_username_length_validation(self, db_session):
+        """测试5：用户名长度验证 [Medium]"""
+    
+    def test_register_duplicate_username_returns_proper_error(self, client, db_session):
+        """测试6：重复用户名注册应返回友好错误 [Medium]"""
+
+
+class TestRateLimiting:
+    """速率限制测试类 - 用于发现防暴力破解缺陷"""
+    
+    def test_login_rate_limiting(self, client, db_session):
+        """测试7：登录接口应有速率限制 [High]"""
+
+
+class TestDataValidation:
+    """数据验证测试类 - 用于发现业务数据验证缺陷"""
+    
+    def test_camera_ip_format_sql_injection(self, client, db_session):
+        """测试8：摄像头IP地址应防止特殊字符注入 [Medium]"""
 ```
 
 ### D. 参考资料
 
 1. OWASP Testing Guide: https://owasp.org/www-project-web-security-testing-guide/
 2. CWE-798 硬编码凭证: https://cwe.mitre.org/data/definitions/798.html
-3. NIST SP 800-63B 数字身份指南: https://pages.nist.gov/800-63-3/sp800-63b.html
-4. Pytest Documentation: https://docs.pytest.org/
+3. CWE-20 输入验证: https://cwe.mitre.org/data/definitions/20.html
+4. CWE-209 敏感信息泄露: https://cwe.mitre.org/data/definitions/209.html
+5. CWE-307 过度认证尝试: https://cwe.mitre.org/data/definitions/307.html
+6. NIST SP 800-63B 数字身份指南: https://pages.nist.gov/800-63-3/sp800-63b.html
+7. Pytest Documentation: https://docs.pytest.org/
+8. Flask-Limiter: https://flask-limiter.readthedocs.io/
 
 ---
 
-**报告完成日期**：2025年12月29日
+**报告完成日期**：2025年12月30日
 
 **审核人**：【人工填写部分】
